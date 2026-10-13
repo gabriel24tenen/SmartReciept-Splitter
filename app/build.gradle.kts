@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.smartreceipt.taxsplitter"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.smartreceipt.taxsplitter"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0"
 
@@ -50,6 +50,7 @@ ksp {
 }
 
 dependencies {
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.12.1")
     // Core / Lifecycle
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
@@ -95,4 +96,7 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation(platform("androidx.compose:compose-bom:2026.09.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+
+    //Material
+    implementation("com.google.android.material:material:1.14.0")
 }
