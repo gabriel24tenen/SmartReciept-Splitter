@@ -1,5 +1,6 @@
 package com.example.smartreceipetsplitter.data.module
 
+import com.example.smartreceipetsplitter.data.repository.ReceiptRepositoryImpl
 import com.example.smartreceipetsplitter.domain.repository.ReceiptRepository
 import dagger.Binds
 import dagger.Module
