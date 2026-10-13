@@ -2,6 +2,7 @@ package com.example.smartreceiptsplitter.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 
 @Entity(tableName = "group_member_cross_ref", primaryKeys = ["groupId", "personId"],
     foreignKeys =  [
@@ -17,7 +18,8 @@ import androidx.room.ForeignKey
             childColumns = ["personId"],
             onDelete = ForeignKey.CASCADE
         )
-    ])
+    ],
+    indices = [Index(value = ["groupId"]), Index(value = ["personId"])])
 data class GroupMemberCrossRefEntity(
     val groupId: Long,
     val personId: Long

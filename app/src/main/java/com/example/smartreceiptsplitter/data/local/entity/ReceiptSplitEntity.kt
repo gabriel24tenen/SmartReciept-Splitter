@@ -2,6 +2,7 @@ package com.example.smartreceiptsplitter.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.smartreceiptsplitter.data.local.enums.Statuses
 
@@ -25,7 +26,8 @@ import com.example.smartreceiptsplitter.data.local.enums.Statuses
             childColumns = ["groupId"],
             onDelete = ForeignKey.SET_NULL
         )
-    ])
+    ],
+    indices = [Index(value = ["receiptId"]), Index(value = ["personId"]), Index(value = ["groupId"])])
 data class ReceiptSplitEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
