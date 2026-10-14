@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.smartreceipt.taxsplitter"
+    namespace = "com.smartreceiptsplitter"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.smartreceipt.taxsplitter"
+        applicationId = "com.smartreceiptsplitter"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
