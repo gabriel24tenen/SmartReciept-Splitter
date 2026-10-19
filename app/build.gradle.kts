@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.smartreceiptsplitter"
+    namespace = "com.example.smartreceiptsplitter"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.smartreceiptsplitter"
+        applicationId = "com.example.smartreceiptsplitter"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

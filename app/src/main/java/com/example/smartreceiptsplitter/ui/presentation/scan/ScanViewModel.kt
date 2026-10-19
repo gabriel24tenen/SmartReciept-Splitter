@@ -1,8 +1,6 @@
 package com.example.smartreceiptsplitter.ui.presentation.scan
 
 import android.graphics.Bitmap
-import android.graphics.Camera
-import android.os.Message
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartreceiptsplitter.domain.usecase.scan.CorrectPerspectiveUseCase
