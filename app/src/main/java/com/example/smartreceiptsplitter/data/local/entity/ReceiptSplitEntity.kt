@@ -27,7 +27,8 @@ import com.example.smartreceiptsplitter.data.local.enums.Statuses
             onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index(value = ["receiptId"]), Index(value = ["personId"]), Index(value = ["groupId"])])
+    //F04 TASK 4.1 unique (receiptId, personId): one split row per person per receipt. It also serves as the index for the receiptId foreign key.
+    indices = [Index(value = ["receiptId", "personId"], unique = true), Index(value = ["personId"]), Index(value = ["groupId"])])
 data class ReceiptSplitEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -36,7 +37,7 @@ data class ReceiptSplitEntity(
     val groupId: Long?,
     val amountOwed: Long,
     val taxShare: Long?,
-    val tipShare: Long,
+    val tipShare: Long?,
     val status: Statuses,
-    val paidAt: Long
+    val paidAt: Long?
     )
