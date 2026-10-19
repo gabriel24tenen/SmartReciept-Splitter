@@ -1,17 +1,16 @@
 plugins {
     id("com.android.application")
-    //id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
 
 android {
-    namespace = "com.smartreceipt.taxsplitter"
+    namespace = "com.smartreceiptsplitter"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.smartreceipt.taxsplitter"
+        applicationId = "com.smartreceiptsplitter"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
