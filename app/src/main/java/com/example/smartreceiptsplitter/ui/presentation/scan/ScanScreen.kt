@@ -211,7 +211,7 @@ private fun ShutterButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
 
 @Composable
 private fun LoadingOverlay(label: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterHorizontally as Alignment) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
         Spacer(modifier = Modifier.height(12.dp))
         Text(label, color = Color.White)
