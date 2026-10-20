@@ -20,6 +20,9 @@ fun SmartReceiptSplitterNavHost(
         composable(Routes.SCAN) {
             ScanScreen()
         }
+        composable(Routes.RECEIPT_FORM) {
+            // TODO
+        }
         composable(route = Routes.SPLIT,
             arguments = listOf(navArgument(Routes.ARG_RECEIPT_ID) { type = NavType.LongType})
         ) {

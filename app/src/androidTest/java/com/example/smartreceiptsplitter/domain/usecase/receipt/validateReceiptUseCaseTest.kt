@@ -71,7 +71,7 @@ class ValidateReceiptUseCaseTest {
     // ---- merchant
 
     @Test
-    fun blankMerchantIsRequired() {
+    fun blankMerchantIsAcceptedAndBecomesNull() {
         assertEquals(ReceiptFieldError.REQUIRED, error(draft(merchantName = ""), ReceiptField.MERCHANT))
         assertEquals(ReceiptFieldError.REQUIRED, error(draft(merchantName = "   "), ReceiptField.MERCHANT))
     }
@@ -201,7 +201,7 @@ class ValidateReceiptUseCaseTest {
     fun everyInvalidFieldIsReportedAtOnce() {
         val result = errors(
             ReceiptDraft(
-                merchantName = "",
+                merchantName = "a".repeat(ReceiptLimits.MAX_MERCHANT_LENGTH + 1),
                 date = startOfDay(2026, 12, 1),
                 totalAmount = 100,
                 taxAmount = 200,
@@ -211,7 +211,7 @@ class ValidateReceiptUseCaseTest {
         )
         assertEquals(
             mapOf(
-                ReceiptField.MERCHANT to ReceiptFieldError.REQUIRED,
+                ReceiptField.MERCHANT to ReceiptFieldError.TOO_LONG,
                 ReceiptField.DATE to ReceiptFieldError.DATE_IN_FUTURE,
                 ReceiptField.TAX to ReceiptFieldError.TAX_EXCEEDS_TOTAL,
                 ReceiptField.TIP to ReceiptFieldError.NEGATIVE,
@@ -225,7 +225,6 @@ class ValidateReceiptUseCaseTest {
     fun emptyDraftReportsOnlyTheRequiredFields() {
         assertEquals(
             mapOf(
-                ReceiptField.MERCHANT to ReceiptFieldError.REQUIRED,
                 ReceiptField.DATE to ReceiptFieldError.REQUIRED,
                 ReceiptField.TOTAL to ReceiptFieldError.REQUIRED,
                 ReceiptField.CURRENCY to ReceiptFieldError.REQUIRED

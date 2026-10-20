@@ -24,10 +24,9 @@ import javax.inject.Inject
 class ValidateReceiptUseCase @Inject constructor(){
     operator fun invoke(draft: ReceiptDraft, clock: Clock = Clock.systemDefaultZone()): ReceiptValidation {
         val errors = linkedMapOf<ReceiptField, ReceiptFieldError>()
-        val merchant = draft.merchantName.trim()
-        when {
-            merchant.isEmpty() -> errors[ReceiptField.MERCHANT] = ReceiptFieldError.REQUIRED
-            merchant.length > ReceiptLimits.MAX_MERCHANT_LENGTH -> errors[ReceiptField.MERCHANT] = ReceiptFieldError.TOO_LONG
+        val merchant = draft.merchantName.trim().takeIf { it.isNotEmpty() }
+        if (merchant != null && merchant.length > ReceiptLimits.MAX_MERCHANT_LENGTH) {
+            errors[ReceiptField.MERCHANT] = ReceiptFieldError.TOO_LONG
         }
 
         val date = draft.date
@@ -71,7 +70,7 @@ class ValidateReceiptUseCase @Inject constructor(){
 
         return ReceiptValidation.Valid(
             ValidatedReceipt(
-                merchantName = merchant,
+                merchantName = merchant ?: "(empty)",
                 date = date,
                 totalAmount = total,
                 taxAmount = tax,

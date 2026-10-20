@@ -3,6 +3,7 @@ package com.example.smartreceiptsplitter.ui.presentation.scan
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartreceiptsplitter.data.local.enums.CameraPermissionStatus
 import com.example.smartreceiptsplitter.domain.usecase.scan.CorrectPerspectiveUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.DetectDocumentEdgesUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.SaveCorrectedReceiptImageUseCase
@@ -14,12 +15,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
-enum class CameraPermissionStatus {
-    UNKNOWN,
-    GRANTED,
-    DENIED,
-    PERMANENTLY_DENIED
-}
 
 sealed interface CaptureState {
     data object Idle : CaptureState //live preview, ready for the shutter

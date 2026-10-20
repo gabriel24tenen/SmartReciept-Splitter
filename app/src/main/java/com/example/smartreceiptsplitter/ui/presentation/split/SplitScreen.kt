@@ -159,7 +159,7 @@ private fun SplitContent(
     ) {
         item(key = "header") {
             Column {
-                Text(receipt.merchantName, style = MaterialTheme.typography.headlineSmall)
+                Text(receipt.merchantName ?: "Receipt", style = MaterialTheme.typography.headlineSmall)
                 Text("Total: ${formatMoney(receipt.totalAmount, currency)}")
                 receipt.taxAmount?.let { Text("Tax: ${formatMoney(it, currency)}") }
             }

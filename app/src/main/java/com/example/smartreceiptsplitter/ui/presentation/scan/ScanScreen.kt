@@ -23,9 +23,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -52,13 +54,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.smartreceiptsplitter.data.local.enums.CameraPermissionStatus
 import java.io.File
 
 @Composable
 fun ScanScreen (
     modifier: Modifier = Modifier,
     viewModel: ScanViewModel = hiltViewModel(),
-    onReceiptScanned: (File) -> Unit = {}
+    onReceiptScanned: (File) -> Unit = {},
+    onManualEntry: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -136,6 +140,12 @@ fun ScanScreen (
             CameraPermissionStatus.UNKNOWN -> {
                 //Brief window before LaunchedEffect resolves; intentionally blank rather than flashing a rationale the user hasn't been asked for yet
             }
+        }
+        if(permissionStatus != CameraPermissionStatus.GRANTED || captureState != CaptureState.Idle) {
+            FilledTonalButton(
+                onClick = onManualEntry,
+                modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)
+            ) { Text("Enter manually") }
         }
     }
 }

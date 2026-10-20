@@ -10,6 +10,7 @@ object Routes {
 
     const val ARG_RECEIPT_ID = "receiptId"
     const val SPLIT = "split/{$ARG_RECEIPT_ID}"
+    const val RECEIPT_FORM = "receipt-form" //manual entry
 
     //Route of the split screen for one saved receipt
     fun split(receiptId: Long) = "split/$receiptId"
