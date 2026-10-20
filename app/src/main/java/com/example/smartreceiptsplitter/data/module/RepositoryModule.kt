@@ -1,7 +1,9 @@
 package com.example.smartreceiptsplitter.data.module
 
+import com.example.smartreceiptsplitter.data.repository.PersonRepositoryImpl
 import com.example.smartreceiptsplitter.data.repository.ReceiptRepositoryImpl
 import com.example.smartreceiptsplitter.data.repository.ReceiptSplitRepositoryImpl
+import com.example.smartreceiptsplitter.domain.repository.PersonRepository
 import com.example.smartreceiptsplitter.domain.repository.ReceiptRepository
 import com.example.smartreceiptsplitter.domain.repository.ReceiptSplitRepository
 import dagger.Binds
@@ -26,5 +28,11 @@ abstract class RepositoryModule {
         impl: ReceiptSplitRepositoryImpl
     ) : ReceiptSplitRepository
 
-    //TODO: other repositories such as PersonRepository, CategoryRepository also should be bind here
+    @Binds
+    @Singleton
+    abstract fun bindPersonRepository(
+        impl: PersonRepositoryImpl
+    ): PersonRepository
+
+    //TODO: other repositories such as CategoryRepository also should be bind here
 }
