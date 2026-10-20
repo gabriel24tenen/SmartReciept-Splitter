@@ -24,7 +24,7 @@ import androidx.room.PrimaryKey
 data class ReceiptEntity (
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val merchantName: String,
+    val merchantName: String?,
     val date: Long,
     val totalAmount: Long,
     val taxAmount: Long?,
