@@ -43,7 +43,7 @@ import com.example.smartreceiptsplitter.domain.model.SplitError
 import com.example.smartreceiptsplitter.ui.util.formatMoney
 
 @Composable
-private fun SplitScreen(
+fun SplitScreen(
     modifier: Modifier = Modifier,
     viewModel: SplitViewModel = hiltViewModel(),
     onBack: () -> Unit = {},

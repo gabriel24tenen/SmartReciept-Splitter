@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.smartreceiptsplitter.ui.presentation.scan.ScanScreen
+import com.example.smartreceiptsplitter.ui.presentation.split.SplitScreen
 
 //Scan is the start destination for now
 @Composable
@@ -21,6 +22,11 @@ fun SmartReceiptSplitterNavHost(
         }
         composable(route = Routes.SPLIT,
             arguments = listOf(navArgument(Routes.ARG_RECEIPT_ID) { type = NavType.LongType})
-        ) {  }
+        ) {
+            SplitScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() }
+            )
+        }
     }
 }
