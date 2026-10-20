@@ -28,6 +28,7 @@ data class ReceiptEntity (
     val date: Long,
     val totalAmount: Long,
     val taxAmount: Long?,
+    val tipAmount: Long?,
     val currency: String,
     val homeCurrencyAmount: Long?,
     val exchangeRateUsed: Double?,

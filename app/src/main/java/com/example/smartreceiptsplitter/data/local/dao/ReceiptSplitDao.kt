@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.Flow
 interface ReceiptSplitDao {
     @Query("SELECT * FROM receipt_splits WHERE receiptId = :receiptId")
     fun getForReceipt(receiptId: Long): Flow<List<ReceiptSplitEntity>>
+    @Query("SELECT * FROM receipt_splits WHERE receiptId = :receiptId")
+    suspend fun getForReceiptOnce(receiptId: Long): List<ReceiptSplitEntity>
     @Query("SELECT * FROM receipt_splits WHERE personId = :personId")
     fun getForPerson(personId: Long): Flow<List<ReceiptSplitEntity>>
     @Insert
