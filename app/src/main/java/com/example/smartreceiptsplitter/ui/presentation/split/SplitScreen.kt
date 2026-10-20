@@ -68,7 +68,7 @@ fun SplitScreen(
                     onClick = viewModel::onSave,
                     enabled = state.calculation is SplitCalculation.Success && !state.isSaving,
                     modifier = Modifier.weight(1f)
-                ) { Text("Save split.") }
+                ) { Text("Save split") }
             }
         }
     ) { padding ->
@@ -123,7 +123,7 @@ private fun SplitContent(
         items(state.persons, key = { it.id }) { person ->
             val selected = person.id in state.selectedIds
             Row(
-                modifier = Modifier.fillMaxSize().toggleable(value = selected, role = Role.Checkbox, onValueChange = { onTogglePerson(person.id)}).padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().toggleable(value = selected, role = Role.Checkbox, onValueChange = { onTogglePerson(person.id)}).padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(checked = selected, onCheckedChange = null)
