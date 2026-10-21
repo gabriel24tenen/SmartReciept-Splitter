@@ -18,6 +18,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -34,11 +35,16 @@ import com.example.smartreceiptsplitter.ui.util.formatMoneyInput
 fun ReceiptFormScreen(
     modifier: Modifier = Modifier,
     viewModel: ReceiptFormViewModel = hiltViewModel(),
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onSaved: (Long) -> Unit = {} //receiving the id of the saved receipt
 ) {
     val state by viewModel.state.collectAsState()
     val inputs = state.inputs
     val errors = state.errors
+
+    LaunchedEffect(state.savedReceiptId) {
+        state.savedReceiptId?.let(onSaved)
+    }
 
     Scaffold(
         modifier = modifier,
@@ -48,7 +54,7 @@ fun ReceiptFormScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
-                Button(onClick = viewModel::onSave, modifier = Modifier.weight(1f)) { Text("Save") }
+                Button(onClick = viewModel::onSave, enabled = !state.isSaving, modifier = Modifier.weight(1f)) { Text("Save") }
             }
         }
     ) { padding ->
@@ -112,6 +118,7 @@ fun ReceiptFormScreen(
                 keyboardType = KeyboardType.Decimal,
                 hint = "Paid on top of the total"
             )
+            state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
     }
 }
