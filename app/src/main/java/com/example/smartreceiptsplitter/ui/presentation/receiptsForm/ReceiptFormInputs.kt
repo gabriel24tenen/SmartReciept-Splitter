@@ -5,9 +5,12 @@ import com.example.smartreceiptsplitter.data.local.enums.ReceiptFieldError
 import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
 import com.example.smartreceiptsplitter.domain.model.ReceiptValidation
 import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUseCase
+import com.example.smartreceiptsplitter.ui.util.formatDateInput
+import com.example.smartreceiptsplitter.ui.util.formatMoneyInput
 import com.example.smartreceiptsplitter.ui.util.parseDate
 import com.example.smartreceiptsplitter.ui.util.parseMoney
 import java.time.Clock
+import java.time.ZoneId
 
 data class ReceiptFormInputs(
     val merchantName: String = "",
@@ -54,3 +57,14 @@ fun ReceiptFormInputs.validate(
     val ruleErrors = (result as? ReceiptValidation.Invalid)?.errors.orEmpty()
     return ReceiptValidation.Invalid(ruleErrors + formatErrors)
 }
+
+// Text for the form from typed data, e.g. an OCR result to correct. A field that was not found stays blank
+// (the user has to fill it in), only the currency falls back to the default.
+fun ReceiptDraft.toFormInputs(zone: ZoneId = ZoneId.systemDefault()) = ReceiptFormInputs(
+    merchantName = merchantName,
+    date = date?.let { formatDateInput(it, zone) }.orEmpty(),
+    total = totalAmount?.let(::formatMoneyInput).orEmpty(),
+    tax = taxAmount?.let(::formatMoneyInput).orEmpty(),
+    tip = tipAmount?.let(::formatMoneyInput).orEmpty(),
+    currency = currency.ifBlank { ReceiptFormInputs.DEFAULT_CURRENCY }
+)

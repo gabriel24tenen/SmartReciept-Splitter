@@ -19,9 +19,18 @@ fun SmartReceiptSplitterNavHost(
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.SCAN) {
-            ScanScreen()
+            ScanScreen(onManualEntry = { navController.navigate(Routes.receiptForm()) })
         }
-        composable(Routes.RECEIPT_FORM) {
+        composable(
+            route = Routes.RECEIPT_FORM,
+            arguments = Routes.RECEIPT_FORM_ARGS.map { name ->
+                navArgument(name) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            }
+        ) {
             ReceiptFormScreen(
                 onBack = { navController.popBackStack()},
                 onSaved = { receiptId ->

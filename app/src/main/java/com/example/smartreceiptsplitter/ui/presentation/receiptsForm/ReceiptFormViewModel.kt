@@ -1,5 +1,6 @@
 package com.example.smartreceiptsplitter.ui.presentation.receiptsForm
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptField
@@ -7,6 +8,7 @@ import com.example.smartreceiptsplitter.data.local.enums.ReceiptFieldError
 import com.example.smartreceiptsplitter.domain.model.ReceiptValidation
 import com.example.smartreceiptsplitter.domain.usecase.receipt.SaveReceiptUseCase
 import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUseCase
+import com.example.smartreceiptsplitter.ui.navigation.Routes
 import com.example.smartreceiptsplitter.ui.util.formatDateInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,7 @@ import javax.inject.Inject
 
 data class ReceiptFormUiState(
     val inputs: ReceiptFormInputs = ReceiptFormInputs(),
+    val isManualEntry: Boolean = true, // it will be false if form holds an OCR result of scanned receipt to correct
     val errors: Map<ReceiptField, ReceiptFieldError> = emptyMap(),
     val isSaving: Boolean = false,
     val savedReceiptId: Long? = null,
@@ -27,17 +30,19 @@ data class ReceiptFormUiState(
 
 @HiltViewModel
 class ReceiptFormViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val validateReceipt: ValidateReceiptUseCase,
     private val saveReceipt: SaveReceiptUseCase
 ): ViewModel() {
+    // Only a manual entry is stored with true value for manual entry, not ones that comes with its photo scanned
+    private val imagePath: String? = savedStateHandle.get<String>(Routes.ARG_IMAGE_PATH)
+    private val isManualEntry = imagePath == null
     private val clock = Clock.systemDefaultZone()
     private val _state = MutableStateFlow(
-        ReceiptFormUiState(inputs = ReceiptFormInputs(date = formatDateInput(clock.millis(), clock.zone)))
-    )
+        ReceiptFormUiState(inputs = initialInputs(savedStateHandle), isManualEntry = isManualEntry))
     val state: StateFlow<ReceiptFormUiState> = _state.asStateFlow()
 
     private var submitted = false //after first Save, errors are just refreshed
-    private val isManualEntry = true // TODO TASK 7.3
 
     fun onMerchantChange(text: String) = change { copy(merchantName = text) }
     fun onDateChange(text: String) = change { copy(date = text) }
@@ -73,4 +78,18 @@ class ReceiptFormViewModel @Inject constructor(
 
     private fun errorsOf(inputs: ReceiptFormInputs): Map<ReceiptField, ReceiptFieldError> =
         (inputs.validate(validateReceipt, clock) as? ReceiptValidation.Invalid)?.errors.orEmpty()
+
+    // a new receipt starts with today's date, a scanned one starts with OCR read, if date was not found it will stay blank -> wrong default will not be saved
+    private fun initialInputs(handle: SavedStateHandle): ReceiptFormInputs {
+        if (isManualEntry) return ReceiptFormInputs(date = formatDateInput(clock.millis(), clock.zone))
+        fun arg(name: String) = handle.get<String>(name).orEmpty()
+        return ReceiptFormInputs(
+            merchantName = arg(Routes.ARG_MERCHANT),
+            date = arg(Routes.ARG_DATE),
+            total = arg(Routes.ARG_TOTAL),
+            tax = arg(Routes.ARG_TAX),
+            tip = arg(Routes.ARG_TIP),
+            currency = arg(Routes.ARG_CURRENCY).ifBlank { ReceiptFormInputs.DEFAULT_CURRENCY }
+        )
+    }
 }

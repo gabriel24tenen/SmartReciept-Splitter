@@ -6,6 +6,8 @@ import com.example.smartreceiptsplitter.domain.model.ValidatedReceipt
 import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUseCase
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.validate
+import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
+import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.toFormInputs
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Clock
@@ -147,5 +149,33 @@ class ReceiptFormInputsTest {
             ),
             errors(inputs(merchantName = " ", date = "21.10.2026", total = "abc", tax = "", currency = "XX"))
         )
+    }
+    // ---- from a typed draft (OCR result)
+
+    @Test
+    fun draftBecomesFormTextAndValidatesBackToTheSameValues() {
+        val draft = ReceiptDraft("Konzum", startOfDay(2026, 10, 19), 1250, 250, 100, "EUR")
+        val text = draft.toFormInputs(zone)
+        assertEquals(ReceiptFormInputs("Konzum", "19.10.2026", "12.50", "2.50", "1.00", "EUR"), text)
+        assertEquals(
+            ReceiptValidation.Valid(ValidatedReceipt("Konzum", startOfDay(2026, 10, 19), 1250, 250, 100, "EUR")),
+            validate(text)
+        )
+    }
+
+    @Test
+    fun fieldsOcrDidNotFindStayBlankAndMustBeFilledIn() {
+        val text = ReceiptDraft(merchantName = "Konzum", totalAmount = 1250, currency = "EUR").toFormInputs(zone)
+        assertEquals(ReceiptFormInputs("Konzum", "", "12.50", "", "", ReceiptFormInputs.DEFAULT_CURRENCY), text)
+        assertEquals(mapOf(ReceiptField.DATE to ReceiptFieldError.REQUIRED), errors(text))
+    }
+
+    @Test
+    fun wrongOcrValueCanBeCorrectedInTheForm() {
+        // OCR read a tax that is higher than the total
+        val text = ReceiptDraft("Konzum", startOfDay(2026, 10, 19), 1000, 5000, null, "EUR").toFormInputs(zone)
+        assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, errors(text)[ReceiptField.TAX])
+        val corrected = text.copy(total = "50")
+        assertEquals(5000L, (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount)
     }
 }

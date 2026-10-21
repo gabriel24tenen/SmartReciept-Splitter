@@ -62,7 +62,16 @@ fun ReceiptFormScreen(
             modifier = Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("New receipt", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                if (state.isManualEntry) "New receipt" else "Check scanned receipt",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            if (!state.isManualEntry) {
+                Text(
+                    "These values were read from the photo and may be wrong.Correct anything that does not match the receipt.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
             FormField(
                 label = "Merchant (optional)",
