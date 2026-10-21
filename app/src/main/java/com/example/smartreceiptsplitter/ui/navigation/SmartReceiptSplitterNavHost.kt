@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormScreen
 import com.example.smartreceiptsplitter.ui.presentation.scan.ScanScreen
 import com.example.smartreceiptsplitter.ui.presentation.split.SplitScreen
 
@@ -18,7 +19,26 @@ fun SmartReceiptSplitterNavHost(
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.SCAN) {
-            ScanScreen()
+            ScanScreen(onManualEntry = { navController.navigate(Routes.receiptForm()) })
+        }
+        composable(
+            route = Routes.RECEIPT_FORM,
+            arguments = Routes.RECEIPT_FORM_ARGS.map { name ->
+                navArgument(name) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            }
+        ) {
+            ReceiptFormScreen(
+                onBack = { navController.popBackStack()},
+                onSaved = { receiptId ->
+                    navController.navigate(Routes.split(receiptId)) {
+                        popUpTo(Routes.RECEIPT_FORM) { inclusive = true }
+                    }
+                }
+            )
         }
         composable(route = Routes.SPLIT,
             arguments = listOf(navArgument(Routes.ARG_RECEIPT_ID) { type = NavType.LongType})
