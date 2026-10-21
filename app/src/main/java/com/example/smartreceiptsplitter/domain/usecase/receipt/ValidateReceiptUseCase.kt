@@ -1,6 +1,6 @@
 package com.example.smartreceiptsplitter.domain.usecase.receipt
 
-import android.icu.util.Currency
+import java.util.Currency
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptField
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptFieldError
 import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
@@ -13,7 +13,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 // Pure validation rules for a receipt entered by hand or corrected after OCR (F07)
-// merchant: required, at most MAX_MERCHANT_LENGTH characters
+// merchant: optional - blank becomes null
 // date: required, not after today
 // total: required, greater than 0, at most MAX_AMOUNT
 // tax: optional, 0..MAX_AMOUNT and not above the total (same rule as the split calculation)
@@ -70,7 +70,7 @@ class ValidateReceiptUseCase @Inject constructor(){
 
         return ReceiptValidation.Valid(
             ValidatedReceipt(
-                merchantName = merchant ?: "(empty)",
+                merchantName = merchant ?: "",
                 date = date,
                 totalAmount = total,
                 taxAmount = tax,
