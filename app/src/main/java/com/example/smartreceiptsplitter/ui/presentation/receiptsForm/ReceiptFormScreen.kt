@@ -68,7 +68,7 @@ fun ReceiptFormScreen(
             )
             if (!state.isManualEntry) {
                 Text(
-                    "These values were read from the photo and may be wrong.Correct anything that does not match the receipt.",
+                    "These values were read from the photo and may be wrong. Correct anything that does not match the receipt.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
