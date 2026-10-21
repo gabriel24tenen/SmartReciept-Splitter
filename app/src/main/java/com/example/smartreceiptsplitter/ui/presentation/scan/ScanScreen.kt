@@ -141,7 +141,7 @@ fun ScanScreen (
                 //Brief window before LaunchedEffect resolves; intentionally blank rather than flashing a rationale the user hasn't been asked for yet
             }
         }
-        if(permissionStatus != CameraPermissionStatus.GRANTED || captureState != CaptureState.Idle) {
+        if(permissionStatus != CameraPermissionStatus.GRANTED || captureState == CaptureState.Idle) {
             FilledTonalButton(
                 onClick = onManualEntry,
                 modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)
