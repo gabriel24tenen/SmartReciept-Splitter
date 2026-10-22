@@ -8,7 +8,7 @@ import java.time.format.DateTimeParseException
 import java.time.format.ResolverStyle
 import java.util.Locale
 
-private val DATE_PARSERS = listOf("d.M.uuuu", "d.M.uuuu", "d/M/uuuu", "uuuu-M-d").map {
+private val DATE_PARSERS = listOf("d.M.uuuu", "d.M.uuuu.", "d/M/uuuu", "uuuu-M-d").map {
     DateTimeFormatter.ofPattern(it, Locale.ROOT).withResolverStyle(ResolverStyle.STRICT)
 }
 

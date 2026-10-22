@@ -30,7 +30,7 @@ import com.example.smartreceiptsplitter.data.local.entity.ReceiptSplitEntity
         ExchangeRateEntity::class,
         PersonEntity::class
              ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

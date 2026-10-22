@@ -60,7 +60,7 @@ class ReceiptFormViewModel @Inject constructor(
             is ReceiptValidation.Valid -> {
                 _state.update { it.copy(errors = emptyMap(), isSaving = true, errorMessage = null) }
                 viewModelScope.launch {
-                    runCatching { saveReceipt(result.receipt, isManualEntry) }.fold(onSuccess = { id -> _state.update { it.copy(isSaving = false, savedReceiptId = id) }},
+                    runCatching { saveReceipt(result.receipt, isManualEntry, imagePath) }.fold(onSuccess = { id -> _state.update { it.copy(isSaving = false, savedReceiptId = id) }},
                         onFailure = { error ->
                             _state.update { it.copy(isSaving = false, errorMessage = error.message ?: "Could not save the receipt.") }
                         })

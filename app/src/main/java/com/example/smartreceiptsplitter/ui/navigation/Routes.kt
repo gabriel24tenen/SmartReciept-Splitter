@@ -20,9 +20,8 @@ object Routes {
     const val ARG_TIP = "tip"
     const val ARG_CURRENCY = "currency"
     val RECEIPT_FORM_ARGS = listOf(ARG_IMAGE_PATH, ARG_MERCHANT, ARG_DATE, ARG_TOTAL, ARG_TAX, ARG_TIP, ARG_CURRENCY)
-    const val RECEIPT_FORM = "receipt-form$ARG_IMAGE_PATH={$ARG_IMAGE_PATH}&$ARG_MERCHANT={$ARG_MERCHANT&$ARG_DATE={$ARG_DATE}" +
-            "&$ARG_TOTAL={$ARG_TOTAL}&$ARG_TAX={$ARG_TAX}&$$ARG_TIP={$ARG_TIP}&$ARG_CURRENCY={$ARG_CURRENCY}"
-
+    const val RECEIPT_FORM = "receipt-form?$ARG_IMAGE_PATH={$ARG_IMAGE_PATH}&$ARG_MERCHANT={$ARG_MERCHANT&$ARG_DATE={$ARG_DATE}" +
+            "&$ARG_TOTAL={$ARG_TOTAL}&$ARG_TAX={$ARG_TAX}&$ARG_TIP={$ARG_TIP}&$ARG_CURRENCY={$ARG_CURRENCY}"
 
 
     const val ARG_RECEIPT_ID = "receiptId"
@@ -39,7 +38,7 @@ object Routes {
             ARG_TIP to inputs.tip,
             ARG_CURRENCY to inputs.currency
         ).filter { (_, value) -> value.isNotBlank() }
-        return "receipt.form?" + args.joinToString("&") { (name, value) -> "$name=${Uri.encode(value)}"}
+        return "receipt-form?" + args.joinToString("&") { (name, value) -> "$name=${Uri.encode(value)}"}
     }
     //Route of the split screen for one saved receipt
     fun split(receiptId: Long) = "split/$receiptId"
