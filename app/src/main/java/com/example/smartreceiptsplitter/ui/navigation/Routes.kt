@@ -6,7 +6,7 @@ import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptForm
 /*
 Route constants for the app's NavHost. Kept as a flat object rather than a sealed
 class with arguments until a route actually needs one — grows as more screens land
- OCR review for F02).
+ OCR review for F02.
  */
 object Routes {
     const val SCAN = "scan"
@@ -21,7 +21,7 @@ object Routes {
     const val ARG_TIP = "tip"
     const val ARG_CURRENCY = "currency"
     val RECEIPT_FORM_ARGS = listOf(ARG_IMAGE_PATH, ARG_MERCHANT, ARG_DATE, ARG_TOTAL, ARG_TAX, ARG_TIP, ARG_CURRENCY)
-    const val RECEIPT_FORM = "receipt-form?$ARG_IMAGE_PATH={$ARG_IMAGE_PATH}&$ARG_MERCHANT={$ARG_MERCHANT&$ARG_DATE={$ARG_DATE}" +
+    const val RECEIPT_FORM = "receipt-form?$ARG_IMAGE_PATH={$ARG_IMAGE_PATH}&$ARG_MERCHANT={$ARG_MERCHANT}&$ARG_DATE={$ARG_DATE}" +
             "&$ARG_TOTAL={$ARG_TOTAL}&$ARG_TAX={$ARG_TAX}&$ARG_TIP={$ARG_TIP}&$ARG_CURRENCY={$ARG_CURRENCY}"
 
 

@@ -1,6 +1,5 @@
 package com.example.smartreceiptsplitter.data.local.dao
 
-import android.icu.util.Currency
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -26,9 +25,9 @@ interface ReceiptDao {
     @Query("""
         SELECT * FROM receipts
         WHERE (:dateFrom IS NULL OR date >= :dateFrom)
-            AND (:datetoExclusive IS NULL OR date <= :dateToExclusive)
+            AND (:dateToExclusive IS NULL OR date < :dateToExclusive)
             AND (:currency IS NULL OR currency = :currency)
         ORDER BY date DESC, createdAt DESC, id DESC
     """)
-    fun getFiltered(dateFrom: Long?, datetoExclusive: Long?, currency: String?): Flow<List<ReceiptEntity>>
+    fun getFiltered(dateFrom: Long?, dateToExclusive: Long?, currency: String?): Flow<List<ReceiptEntity>>
 }

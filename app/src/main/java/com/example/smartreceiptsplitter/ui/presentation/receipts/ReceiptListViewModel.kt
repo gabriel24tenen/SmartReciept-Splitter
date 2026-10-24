@@ -7,6 +7,7 @@ import com.example.smartreceiptsplitter.domain.usecase.receipt.DeleteReceiptUseC
 import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptCurrenciesUseCase
 import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 import java.time.ZoneId
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ReceiptListViewModel @Inject constructor(
     private val getReceipts: GetReceiptsUseCase,

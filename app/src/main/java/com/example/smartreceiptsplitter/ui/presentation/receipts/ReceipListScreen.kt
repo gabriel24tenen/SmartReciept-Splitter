@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -56,7 +55,7 @@ fun ReceiptListScreen(
     Scaffold(
         modifier = modifier,
         bottomBar = {
-            Row(modifier = Modifier.fillMaxSize().navigationBarsPadding().padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
                 OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
             }
         }
@@ -78,7 +77,7 @@ fun ReceiptListScreen(
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { shownFilters = !shownFilters }) {
-                    Text(if (state.activeFilterCount > 0) "Filters ({${state.activeFilterCount}})" else "Filters")
+                    Text(if (state.activeFilterCount > 0) "Filters (${state.activeFilterCount})" else "Filters")
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 if(state.hasActiveFilters) {
@@ -227,7 +226,7 @@ private fun ReceiptRow(
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 4.dp,),
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 4.dp),
             verticalAlignment = Alignment.Top
         ) {
           Column(modifier = Modifier.weight(1f)) {
