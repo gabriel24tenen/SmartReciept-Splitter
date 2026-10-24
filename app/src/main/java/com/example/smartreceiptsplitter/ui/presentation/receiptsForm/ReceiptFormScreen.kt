@@ -1,8 +1,10 @@
 package com.example.smartreceiptsplitter.ui.presentation.receiptsForm
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -12,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -21,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -54,81 +58,95 @@ fun ReceiptFormScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
-                Button(onClick = viewModel::onSave, enabled = !state.isSaving, modifier = Modifier.weight(1f)) { Text("Save") }
+                Button(onClick = viewModel::onSave, enabled = !state.isSaving && !state.isLoading && !state.notFound, modifier = Modifier.weight(1f)) { Text("Save") }
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                if (state.isManualEntry) "New receipt" else "Check scanned receipt",
-                style = MaterialTheme.typography.headlineSmall
-            )
-            if (!state.isManualEntry) {
-                Text(
-                    "These values were read from the photo and may be wrong. Correct anything that does not match the receipt.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            if (state.isLoading || state.notFound) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (state.isLoading) CircularProgressIndicator()
+                    else Text(state.errorMessage ?: "Receipt not found.")
+                }
+                return@Scaffold
             }
+                Column(
+                    modifier = Modifier.padding(padding).imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        when {
+                            state.isEditing -> "Edit receipt"
+                            state.isManualEntry -> "New receipt"
+                            else -> "Check scanned receipt"
+                        },
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    if (!state.isManualEntry && !state.isEditing) {
+                        Text(
+                            "These values were read from the photo and may be wrong. Correct anything that does not match the receipt.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
 
-            FormField(
-                label = "Merchant (optional)",
-                value = inputs.merchantName,
-                onValueChange = viewModel::onMerchantChange,
-                error = errors[ReceiptField.MERCHANT],
-                field = ReceiptField.MERCHANT,
-                capitalization = KeyboardCapitalization.Words
-            )
-            FormField(
-                label = "Date",
-                value = inputs.date,
-                onValueChange = viewModel::onDateChange,
-                error = errors[ReceiptField.DATE],
-                field = ReceiptField.DATE,
-                hint = "dd.MM.yyyy"
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FormField(
-                    label = "Total",
-                    value = inputs.total,
-                    onValueChange = viewModel::onTotalChange,
-                    error = errors[ReceiptField.TOTAL],
-                    field = ReceiptField.TOTAL,
-                    keyboardType = KeyboardType.Decimal,
-                    modifier = Modifier.weight(1f)
-                )
-                FormField(
-                    label = "Currency",
-                    value = inputs.currency,
-                    onValueChange = viewModel::onCurrencyChange,
-                    error = errors[ReceiptField.CURRENCY],
-                    field = ReceiptField.CURRENCY,
-                    capitalization = KeyboardCapitalization.Characters,
-                    modifier = Modifier.width(120.dp)
-                )
-            }
-            FormField(
-                label = "Tax / VAT (optional)",
-                value = inputs.tax,
-                onValueChange = viewModel::onTaxChange,
-                error = errors[ReceiptField.TAX],
-                field = ReceiptField.TAX,
-                keyboardType = KeyboardType.Decimal,
-                hint = "The part of the total that is tax"
-            )
-            FormField(
-                label = "Tip (optional)",
-                value = inputs.tip,
-                onValueChange = viewModel::onTipChange,
-                error = errors[ReceiptField.TIP],
-                field = ReceiptField.TIP,
-                keyboardType = KeyboardType.Decimal,
-                hint = "Paid on top of the total"
-            )
-            state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        }
+                    FormField(
+                        label = "Merchant (optional)",
+                        value = inputs.merchantName,
+                        onValueChange = viewModel::onMerchantChange,
+                        error = errors[ReceiptField.MERCHANT],
+                        field = ReceiptField.MERCHANT,
+                        capitalization = KeyboardCapitalization.Words
+                    )
+                    FormField(
+                        label = "Date",
+                        value = inputs.date,
+                        onValueChange = viewModel::onDateChange,
+                        error = errors[ReceiptField.DATE],
+                        field = ReceiptField.DATE,
+                        hint = "dd.MM.yyyy"
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FormField(
+                            label = "Total",
+                            value = inputs.total,
+                            onValueChange = viewModel::onTotalChange,
+                            error = errors[ReceiptField.TOTAL],
+                            field = ReceiptField.TOTAL,
+                            keyboardType = KeyboardType.Decimal,
+                            modifier = Modifier.weight(1f)
+                        )
+                        FormField(
+                            label = "Currency",
+                            value = inputs.currency,
+                            onValueChange = viewModel::onCurrencyChange,
+                            error = errors[ReceiptField.CURRENCY],
+                            field = ReceiptField.CURRENCY,
+                            capitalization = KeyboardCapitalization.Characters,
+                            modifier = Modifier.width(120.dp)
+                        )
+                    }
+                    FormField(
+                        label = "Tax / VAT (optional)",
+                        value = inputs.tax,
+                        onValueChange = viewModel::onTaxChange,
+                        error = errors[ReceiptField.TAX],
+                        field = ReceiptField.TAX,
+                        keyboardType = KeyboardType.Decimal,
+                        hint = "The part of the total that is tax"
+                    )
+                    FormField(
+                        label = "Tip (optional)",
+                        value = inputs.tip,
+                        onValueChange = viewModel::onTipChange,
+                        error = errors[ReceiptField.TIP],
+                        field = ReceiptField.TIP,
+                        keyboardType = KeyboardType.Decimal,
+                        hint = "Paid on top of the total"
+                    )
+                    state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
     }
 }
 
