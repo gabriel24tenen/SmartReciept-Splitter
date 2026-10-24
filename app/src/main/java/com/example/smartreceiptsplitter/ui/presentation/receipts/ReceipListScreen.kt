@@ -56,7 +56,7 @@ fun ReceiptListScreen(
     Scaffold(
         modifier = modifier,
         bottomBar = {
-            Row(modifier = Modifier.fillMaxSize().navigationBarsPadding().padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
                 OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
             }
         }
