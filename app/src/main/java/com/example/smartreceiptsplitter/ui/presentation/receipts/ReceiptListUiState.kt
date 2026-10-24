@@ -38,7 +38,7 @@ data class ReceiptListUiState(
         val to = parseDate(dateTo, zone)
         return copy(
             dateFromInvalid = dateFrom.isNotBlank() && from == null,
-            dateToInvalid = dateTo.isNotBlank() && from == null,
+            dateToInvalid = dateTo.isNotBlank() && to == null,
             dateRangeReversed = from != null && to != null && to < from
         )
     }
