@@ -6,10 +6,11 @@ import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptForm
 /*
 Route constants for the app's NavHost. Kept as a flat object rather than a sealed
 class with arguments until a route actually needs one — grows as more screens land
-(receipts list/history for F06, OCR review for F02, split screen for F04, ...).
+ OCR review for F02).
  */
 object Routes {
     const val SCAN = "scan"
+    const val RECEIPTS = "receipts"
 
     //Receipt Form
     const val ARG_IMAGE_PATH = "imagePath"
@@ -26,7 +27,9 @@ object Routes {
 
     const val ARG_RECEIPT_ID = "receiptId"
     const val SPLIT = "split/{$ARG_RECEIPT_ID}"
-    // Route of the form for a receipt typed in from scratch, no camere needed
+
+    const val RECEIPT_EDIT = "receipt-edit/{$ARG_RECEIPT_ID}" // for receipt editing
+    // Route of the form for a receipt typed in from scratch, no camera needed
     fun receiptForm() = "receipt-form"
     fun receiptFormForScan(imagePath: String, inputs: ReceiptFormInputs = ReceiptFormInputs()): String {
         val args = listOf(
@@ -42,4 +45,6 @@ object Routes {
     }
     //Route of the split screen for one saved receipt
     fun split(receiptId: Long) = "split/$receiptId"
+    //Route of the form for editing one saved receipt
+    fun receiptEdit(receiptId: Long) = "receipt-edit/$receiptId"
 }
