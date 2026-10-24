@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.smartreceiptsplitter.ui.presentation.receipts.ReceiptListScreen
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormScreen
 import com.example.smartreceiptsplitter.ui.presentation.scan.ScanScreen
 import com.example.smartreceiptsplitter.ui.presentation.split.SplitScreen
@@ -19,7 +20,33 @@ fun SmartReceiptSplitterNavHost(
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.SCAN) {
-            ScanScreen(onManualEntry = { navController.navigate(Routes.receiptForm()) })
+            ScanScreen(
+                onManualEntry = { navController.navigate(Routes.receiptForm()) },
+                onOpenHistory = { navController.navigate(Routes.RECEIPTS)}
+            )
+        }
+        composable(Routes.RECEIPTS) {
+            ReceiptListScreen(
+                onBack = { navController.popBackStack() },
+                onOpenReceipt = { receiptId -> navController.navigate(Routes.receiptEdit(receiptId))}
+            )
+        }
+        composable(
+            route = Routes.RECEIPT_EDIT,
+            arguments = listOf(navArgument(Routes.ARG_RECEIPT_ID) { type = NavType.LongType })
+        ) {
+            ReceiptFormScreen(
+                onBack = { navController.popBackStack() },
+                onSaved = { receiptId, splitNeedsReview ->
+                    if (splitNeedsReview) {
+                        navController.navigate(Routes.split(receiptId)) {
+                            popUpTo(Routes.RECEIPT_EDIT) { inclusive = true }
+                        }
+                    } else {
+                        navController.popBackStack()
+                    }
+                }
+            )
         }
         composable(
             route = Routes.RECEIPT_FORM,
@@ -33,7 +60,7 @@ fun SmartReceiptSplitterNavHost(
         ) {
             ReceiptFormScreen(
                 onBack = { navController.popBackStack()},
-                onSaved = { receiptId ->
+                onSaved = { receiptId, _ ->
                     navController.navigate(Routes.split(receiptId)) {
                         popUpTo(Routes.RECEIPT_FORM) { inclusive = true }
                     }

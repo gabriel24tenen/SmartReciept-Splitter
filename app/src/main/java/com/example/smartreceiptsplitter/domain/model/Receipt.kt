@@ -13,5 +13,6 @@ data class Receipt(
     val categoryId: Long?,
     val imagePath: String?,
     val isManualEntry: Boolean,
-    val paidByPersonId: Long?
+    val paidByPersonId: Long?,
+    val createdAt: Long = 0
 )

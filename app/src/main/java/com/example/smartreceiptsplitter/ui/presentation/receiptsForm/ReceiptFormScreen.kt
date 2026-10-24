@@ -36,14 +36,14 @@ fun ReceiptFormScreen(
     modifier: Modifier = Modifier,
     viewModel: ReceiptFormViewModel = hiltViewModel(),
     onBack: () -> Unit = {},
-    onSaved: (Long) -> Unit = {} //receiving the id of the saved receipt
+    onSaved: (receiptId: Long, splitNeedsReview: Boolean) -> Unit = {_, _ -> } //receiving the id of the saved receipt
 ) {
     val state by viewModel.state.collectAsState()
     val inputs = state.inputs
     val errors = state.errors
 
     LaunchedEffect(state.savedReceiptId) {
-        state.savedReceiptId?.let(onSaved)
+        state.savedReceiptId?.let{onSaved(it, state.splitNeedsReview) }
     }
 
     Scaffold(

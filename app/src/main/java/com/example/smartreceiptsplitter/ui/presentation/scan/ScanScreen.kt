@@ -62,7 +62,8 @@ fun ScanScreen (
     modifier: Modifier = Modifier,
     viewModel: ScanViewModel = hiltViewModel(),
     onReceiptScanned: (File) -> Unit = {},
-    onManualEntry: () -> Unit = {}
+    onManualEntry: () -> Unit = {},
+    onOpenHistory: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -142,6 +143,10 @@ fun ScanScreen (
             }
         }
         if(permissionStatus != CameraPermissionStatus.GRANTED || captureState == CaptureState.Idle) {
+            FilledTonalButton(
+                onClick = onOpenHistory,
+                modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp)
+            ) { Text("History") }
             FilledTonalButton(
                 onClick = onManualEntry,
                 modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)
