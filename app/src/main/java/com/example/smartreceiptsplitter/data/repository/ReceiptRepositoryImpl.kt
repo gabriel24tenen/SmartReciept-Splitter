@@ -57,4 +57,14 @@ class ReceiptRepositoryImpl @Inject constructor(
         createdAt = System.currentTimeMillis(),
         paidByPersonId = paidByPersonId
     )
+
+    override fun getReceipts(
+        dateFrom: Long?,
+        dateToExclusive: Long?,
+        currency: String?
+    ): Flow<List<Receipt>> =
+        receiptDao.getFiltered(dateFrom, dateToExclusive, currency).map { list -> list.map { it.toDomain() } }
+
+    override fun getCurrencies(): Flow<List<String>> =
+        receiptDao.getCurrencies()
 }

@@ -24,6 +24,12 @@ class SaveReceiptUseCaseTest {
         }
         override suspend fun updateReceipt(receipt: Receipt) = Unit
         override suspend fun deleteReceipt(receipt: Receipt) = Unit
+        override fun getCurrencies(): Flow<List<String>> = flowOf(added.map { it.currency }.distinct())
+        override fun getReceipts(
+            dateFrom: Long?,
+            dateToExclusive: Long?,
+            currency: String?
+        ): Flow<List<Receipt>> = flowOf(added.toList())
     }
 
     private val validated = ValidatedReceipt(
