@@ -60,7 +60,7 @@ fun SmartReceiptSplitterNavHost(
         ) {
             ReceiptFormScreen(
                 onBack = { navController.popBackStack()},
-                onSaved = { receiptId ->
+                onSaved = { receiptId, _ ->
                     navController.navigate(Routes.split(receiptId)) {
                         popUpTo(Routes.RECEIPT_FORM) { inclusive = true }
                     }
