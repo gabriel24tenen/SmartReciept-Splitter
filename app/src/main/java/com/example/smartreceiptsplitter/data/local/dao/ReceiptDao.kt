@@ -1,6 +1,5 @@
 package com.example.smartreceiptsplitter.data.local.dao
 
-import android.icu.util.Currency
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
