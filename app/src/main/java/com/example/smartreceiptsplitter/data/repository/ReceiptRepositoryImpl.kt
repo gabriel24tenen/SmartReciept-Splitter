@@ -38,7 +38,8 @@ class ReceiptRepositoryImpl @Inject constructor(
         categoryId = categoryId,
         imagePath = imagePath,
         isManualEntry = isManualEntry,
-        paidByPersonId = paidByPersonId
+        paidByPersonId = paidByPersonId,
+        createdAt = createdAt
     )
 
     private fun Receipt.toEntity() = ReceiptEntity(
@@ -54,8 +55,8 @@ class ReceiptRepositoryImpl @Inject constructor(
         categoryId = categoryId,
         imagePath = imagePath,
         isManualEntry = isManualEntry,
-        createdAt = System.currentTimeMillis(),
-        paidByPersonId = paidByPersonId
+        paidByPersonId = paidByPersonId,
+        createdAt = if (createdAt > 0) createdAt else System.currentTimeMillis()
     )
 
     override fun getReceipts(
