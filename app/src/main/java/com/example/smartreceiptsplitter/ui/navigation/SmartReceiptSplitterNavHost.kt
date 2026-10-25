@@ -21,6 +21,7 @@ fun SmartReceiptSplitterNavHost(
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.SCAN) {
             ScanScreen(
+                onScanCompleted = { imagePath -> navController.navigate(Routes.receiptFormForScan(imagePath))},
                 onManualEntry = { navController.navigate(Routes.receiptForm()) },
                 onOpenHistory = { navController.navigate(Routes.RECEIPTS)}
             )

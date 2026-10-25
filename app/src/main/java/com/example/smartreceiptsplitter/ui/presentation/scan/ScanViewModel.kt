@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartreceiptsplitter.data.local.enums.CameraPermissionStatus
+import com.example.smartreceiptsplitter.domain.model.RecognizedText
+import com.example.smartreceiptsplitter.domain.usecase.ocr.RecognizeReceiptTextUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.CorrectPerspectiveUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.DetectDocumentEdgesUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.SaveCorrectedReceiptImageUseCase
@@ -20,8 +22,11 @@ sealed interface CaptureState {
     data object Idle : CaptureState //live preview, ready for the shutter
     data object Processing : CaptureState // capture just happened, detection + correction running
     data class Review(val correctedBitmap: Bitmap, val isConfident: Boolean) : CaptureState // corrected image ready for the user to accept or discard
-    data object Saving : CaptureState // User confirmed, compresing + writing to disk
-    data class Saved(val file: File) : CaptureState //written to disk
+    data object Saving : CaptureState // User confirmed, compressing + writing to disk
+    //data class Saved(val file: File) : CaptureState //written to disk
+    data class Recognizing(val file: File): CaptureState //image is on disk, on-device OCR is running
+    data class Recognized(val file: File, val text: RecognizedText): CaptureState //OCR finished, raw text blocks are ready
+    data class RecognitionFailed(val file: File, val message: String): CaptureState // OCR failed, image is still saved so the user can enter data by hand
     data class Error(val message: String) : CaptureState // camera, decode, processing or save error; retry possible
 }
 
@@ -29,7 +34,8 @@ sealed interface CaptureState {
 class ScanViewModel @Inject constructor(
     private val detectDocumentEdges: DetectDocumentEdgesUseCase,
     private val correctPerspective: CorrectPerspectiveUseCase,
-    private val saveCorrectedImage : SaveCorrectedReceiptImageUseCase
+    private val saveCorrectedImage : SaveCorrectedReceiptImageUseCase,
+    private val recognizeReceiptText: RecognizeReceiptTextUseCase
 ) : ViewModel() {
     private val _permissionStatus = MutableStateFlow(CameraPermissionStatus.UNKNOWN)
     val permissionStatus: StateFlow<CameraPermissionStatus> = _permissionStatus.asStateFlow()
@@ -73,15 +79,24 @@ class ScanViewModel @Inject constructor(
 
     fun onConfirm() {
         val reviewState = _captureState.value as? CaptureState.Review ?: return
+        val corrected = reviewState.correctedBitmap
         _captureState.value = CaptureState.Saving
         viewModelScope.launch {
-            runCatching { saveCorrectedImage(reviewState.correctedBitmap) }.fold(
-                onSuccess = { file -> _captureState.value = CaptureState.Saved(file) },
-                onFailure = { error ->
-                    _captureState.value = CaptureState.Error(error.message ?: "Image saving failed.")
-                }
+            val file = runCatching { saveCorrectedImage(corrected) }.getOrElse { error ->
+                _captureState.value = CaptureState.Error(error.message ?: "Image saving failed.")
+                return@launch
+            }
+            _captureState.value = CaptureState.Recognizing(file)
+            runCatching { recognizeReceiptText(corrected) }.fold(
+                onSuccess = { text -> _captureState.value = CaptureState.Recognized(file, text) },
+                onFailure = { error -> _captureState.value = CaptureState.RecognitionFailed(file, error.message ?: "Text recognition failed.") }
             )
         }
+    }
+
+    // Scan result was handed over to the receipt form; back on this screen the camera is ready again
+    fun onScanHandedOff() {
+        _captureState.value = CaptureState.Idle
     }
 
     fun onRetake() {

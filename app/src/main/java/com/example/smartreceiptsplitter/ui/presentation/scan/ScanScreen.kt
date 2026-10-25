@@ -1,5 +1,6 @@
 package com.example.smartreceiptsplitter.ui.presentation.scan
 
+import android.content.ClipData
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -21,11 +22,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
@@ -39,12 +44,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,6 +64,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.smartreceiptsplitter.data.local.enums.CameraPermissionStatus
+import com.example.smartreceiptsplitter.domain.model.RecognizedText
+import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
@@ -62,6 +73,7 @@ fun ScanScreen (
     modifier: Modifier = Modifier,
     viewModel: ScanViewModel = hiltViewModel(),
     onReceiptScanned: (File) -> Unit = {},
+    onScanCompleted: (imagePath: String) -> Unit = {},
     onManualEntry: () -> Unit = {},
     onOpenHistory: () -> Unit = {}
 ) {
@@ -99,11 +111,6 @@ fun ScanScreen (
         }
     }
 
-    LaunchedEffect(captureState) {
-        val saved = captureState as? CaptureState.Saved ?: return@LaunchedEffect
-        onReceiptScanned(saved.file)
-    }
-
     Box(modifier = modifier.fillMaxSize()) {
         when(permissionStatus) {
             CameraPermissionStatus.GRANTED -> {
@@ -112,7 +119,11 @@ fun ScanScreen (
                     onPhotoCaptured = viewModel::onPhotoCaptured,
                     onCaptureFailed = viewModel::onCaptureFailed,
                     onConfirm = viewModel::onConfirm,
-                    onRetake = viewModel::onRetake
+                    onRetake = viewModel::onRetake,
+                    onContinue = { file ->
+                        viewModel.onScanHandedOff()
+                        onScanCompleted(file.absolutePath)
+                    }
                 )
             }
 
@@ -160,7 +171,8 @@ private fun ScanCaptureFlow(
     onPhotoCaptured: (Bitmap) -> Unit,
     onCaptureFailed: (String) -> Unit,
     onConfirm: () -> Unit,
-    onRetake: () -> Unit
+    onRetake: () -> Unit,
+    onContinue: (File) -> Unit
 ) {
     val context = LocalContext.current
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
@@ -202,7 +214,19 @@ private fun ScanCaptureFlow(
 
             CaptureState.Saving -> LoadingOverlay("Saving...")
 
-            is CaptureState.Saved -> SavedOverlay(onScanAnother = onRetake)
+            is CaptureState.Recognizing -> LoadingOverlay("Reading receipt text...")
+
+            is CaptureState.Recognized -> RecognizedTextOverlay(
+                text = captureState.text,
+                onContinue = { onContinue(captureState.file) },
+                onRetake = onRetake
+            )
+
+            is CaptureState.RecognitionFailed -> RecognitionFailedOverlay(
+                message = captureState.message,
+                onEnterManually = { onContinue(captureState.file) },
+                onRetake = onRetake
+            )
 
             is CaptureState.Error -> ErrorOverlay( message = captureState.message, onRetry = onRetake)
         }
@@ -259,7 +283,7 @@ private fun ReviewOverlay(
         }
     }
 }
-
+/* NOT NEEDED ANYMORE AFTER TASK 2.1
 @Composable
 private fun SavedOverlay(onScanAnother: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -267,6 +291,96 @@ private fun SavedOverlay(onScanAnother: () -> Unit) {
             Text("Receipt saved.", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onScanAnother) { Text("Scan new receipt") }
+        }
+    }
+}
+*/
+
+@Composable
+private fun RecognizedTextOverlay(
+    text: RecognizedText,
+    onContinue: () -> Unit,
+    onRetake: () -> Unit
+) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
+            Text("Recognized text", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "${text.blocks.size} blocks, {$text.lines.size} lines",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if(text.isEmpty) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "No text was recognized on this receipt. Retake the photo or continue and enter the data by hand.",
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    itemsIndexed(text.blocks) { index, block ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                          Column(modifier = Modifier.padding(12.dp)) {
+                              Text(
+                                  text = "Block ${index + 1}",
+                                  style = MaterialTheme.typography.labelSmall,
+                                  color = MaterialTheme.colorScheme.primary
+                              )
+                              block.lines.forEach { line ->
+                                  Text(text = line.text, style = MaterialTheme.typography.bodyMedium)
+                              }
+                          }
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(onClick = onRetake) { Text("Retake") }
+                if(!text.isEmpty) {
+                    OutlinedButton(onClick = {
+                        scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Receipt OCR", text.fullText))) }
+                    }) { Text("Copy text") }
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Button(onClick = onContinue) { Text("Continue") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecognitionFailedOverlay(
+    message: String,
+    onEnterManually: () -> Unit,
+    onRetake: () -> Unit
+) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Text could not be read.", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(message, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onRetake) { Text("Retake") }
+                Button(onClick = onEnterManually) { Text("Enter manually") }
+            }
         }
     }
 }
