@@ -27,16 +27,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -45,16 +47,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
@@ -64,16 +69,21 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.smartreceiptsplitter.data.local.enums.CameraPermissionStatus
+import com.example.smartreceiptsplitter.domain.model.ParsedReceiptItem
+import com.example.smartreceiptsplitter.domain.model.ReceiptExtraction
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
+import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
+import com.example.smartreceiptsplitter.ui.util.formatMoney
 import kotlinx.coroutines.launch
 import java.io.File
+import java.math.BigDecimal
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun ScanScreen (
     modifier: Modifier = Modifier,
     viewModel: ScanViewModel = hiltViewModel(),
-    onReceiptScanned: (File) -> Unit = {},
-    onScanCompleted: (imagePath: String) -> Unit = {},
+    onScanCompleted: (imagePath: String, inputs: ReceiptFormInputs) -> Unit = {_, _ ->},
     onManualEntry: () -> Unit = {},
     onOpenHistory: () -> Unit = {}
 ) {
@@ -120,9 +130,8 @@ fun ScanScreen (
                     onCaptureFailed = viewModel::onCaptureFailed,
                     onConfirm = viewModel::onConfirm,
                     onRetake = viewModel::onRetake,
-                    onContinue = { file ->
-                        viewModel.onScanHandedOff()
-                        onScanCompleted(file.absolutePath)
+                    onContinue = {
+                        viewModel.continueToForm()?.let { (imagePath, inputs) -> onScanCompleted(imagePath, inputs) }
                     }
                 )
             }
@@ -172,7 +181,7 @@ private fun ScanCaptureFlow(
     onCaptureFailed: (String) -> Unit,
     onConfirm: () -> Unit,
     onRetake: () -> Unit,
-    onContinue: (File) -> Unit
+    onContinue: () -> Unit
 ) {
     val context = LocalContext.current
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
@@ -216,15 +225,16 @@ private fun ScanCaptureFlow(
 
             is CaptureState.Recognizing -> LoadingOverlay("Reading receipt text...")
 
-            is CaptureState.Recognized -> RecognizedTextOverlay(
+            is CaptureState.Recognized -> ExtractionReviewOverlay(
                 text = captureState.text,
-                onContinue = { onContinue(captureState.file) },
+                extraction = captureState.extraction,
+                onContinue = onContinue,
                 onRetake = onRetake
             )
 
             is CaptureState.RecognitionFailed -> RecognitionFailedOverlay(
                 message = captureState.message,
-                onEnterManually = { onContinue(captureState.file) },
+                onEnterManually = onContinue,
                 onRetake = onRetake
             )
 
@@ -296,26 +306,28 @@ private fun SavedOverlay(onScanAnother: () -> Unit) {
 }
 */
 
+//new, instead of RecognizedTextOverlay
 @Composable
-private fun RecognizedTextOverlay(
+private fun ExtractionReviewOverlay(
     text: RecognizedText,
+    extraction: ReceiptExtraction,
     onContinue: () -> Unit,
     onRetake: () -> Unit
 ) {
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
+    val currency = ReceiptFormInputs.DEFAULT_CURRENCY
+    var showRawText by rememberSaveable { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
-            Text("Recognized text", style = MaterialTheme.typography.titleLarge)
+            Text("Check scanned receipt", style = MaterialTheme.typography.titleLarge)
             Text(
-                text = "${text.blocks.size} blocks, {$text.lines.size} lines",
+                text = "Fields that couldn't be read are left empty. You can correct everything on the next screen.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            if(text.isEmpty) {
+            if (text.isEmpty) {
                 Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                     Text(
                         text = "No text was recognized on this receipt. Retake the photo or continue and enter the data by hand.",
@@ -327,19 +339,44 @@ private fun RecognizedTextOverlay(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(text.blocks) { index, block ->
+                    item {
                         Card(modifier = Modifier.fillMaxWidth()) {
-                          Column(modifier = Modifier.padding(12.dp)) {
-                              Text(
-                                  text = "Block ${index + 1}",
-                                  style = MaterialTheme.typography.labelSmall,
-                                  color = MaterialTheme.colorScheme.primary
-                              )
-                              block.lines.forEach { line ->
-                                  Text(text = line.text, style = MaterialTheme.typography.bodyMedium)
-                              }
-                          }
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                ExtractedField("Total", extraction.totalAmount?.let { formatMoney(it, currency) })
+                                ExtractedField("Date", extraction.date?.format(REVIEW_DATE_FORMAT))
+                                ExtractedField("VAT / tax", extraction.taxAmount?.let { formatMoney(it, currency) })
+                            }
                         }
+                    }
+                    item {
+                        Text(
+                            text = "Items (${extraction.items.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                        if (extraction.itemsMatchTotal == false) {
+                            Text(
+                                text = "Items add up to ${formatMoney(extraction.itemsTotal, currency)}, but the total is " +
+                                        "${formatMoney(extraction.totalAmount ?: 0L, currency)}. Some items may be missing, misread or discounted.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        if (extraction.items.isEmpty()) {
+                            Text(
+                                text = "No items recognized.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    items(extraction.items) { item -> ExtractedItemRow(item, currency) }
+                    item {
+                        RawTextSection(
+                            fullText = text.fullText,
+                            expanded = showRawText,
+                            onToggle = { showRawText = !showRawText }
+                        )
                     }
                 }
             }
@@ -349,11 +386,6 @@ private fun RecognizedTextOverlay(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(onClick = onRetake) { Text("Retake") }
-                if(!text.isEmpty) {
-                    OutlinedButton(onClick = {
-                        scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Receipt OCR", text.fullText))) }
-                    }) { Text("Copy text") }
-                }
                 Spacer(modifier = Modifier.weight(1f))
                 Button(onClick = onContinue) { Text("Continue") }
             }
@@ -439,3 +471,68 @@ private fun android.content.Context.findActivity(): android.app.Activity {
     }
     throw IllegalStateException("Permission request requires an Activity context")
 }
+
+@Composable
+private fun ExtractedField(label: String, value: String?) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = value ?: "Not found",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (value != null) FontWeight.SemiBold else FontWeight.Normal,
+            fontStyle = if (value == null) FontStyle.Italic else FontStyle.Normal,
+            color = if (value != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun ExtractedItemRow(item: ParsedReceiptItem, currency: String){
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(item.name, style = MaterialTheme.typography.bodyMedium)
+            if (item.unitPrice != null) {
+                Text(
+                    text = "${formatQuantity(item.quantity)} × ${formatMoney(item.unitPrice, currency)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Text(formatMoney(item.totalPrice, currency), style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+// Raw OCR text stays available: useful when a field is missing, and "Copy text" turns real receipts into parser tests
+@Composable
+private fun RawTextSection(fullText: String, expanded: Boolean, onToggle: () -> Unit) {
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        HorizontalDivider()
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            TextButton(onClick = onToggle) { Text(if (expanded) "Hide recognized text" else "Show recognized text") }
+            TextButton(onClick = {
+                scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Receipt OCR", fullText))) }
+            }) { Text("Copy text") }
+        }
+        if (expanded) {
+            Text(
+                text = fullText,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace
+            )
+        }
+    }
+}
+
+private fun formatQuantity(quantity: Double): String =
+    if(quantity % 1.0 == 0.0) quantity.toLong().toString()
+    else BigDecimal.valueOf(quantity).stripTrailingZeros().toPlainString().replace('.', ',')
+
+private val REVIEW_DATE_FORMAT= DateTimeFormatter.ofPattern("dd.MM.yyyy")

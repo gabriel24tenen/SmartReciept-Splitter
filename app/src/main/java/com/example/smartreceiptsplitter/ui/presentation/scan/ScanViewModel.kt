@@ -4,17 +4,24 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartreceiptsplitter.data.local.enums.CameraPermissionStatus
+import com.example.smartreceiptsplitter.domain.model.ReceiptExtraction
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
+import com.example.smartreceiptsplitter.domain.usecase.ocr.ExtractReceiptDataUseCase
 import com.example.smartreceiptsplitter.domain.usecase.ocr.RecognizeReceiptTextUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.CorrectPerspectiveUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.DetectDocumentEdgesUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.SaveCorrectedReceiptImageUseCase
+import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
+import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.toFormInputs
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.time.Clock
 import javax.inject.Inject
 
 
@@ -25,7 +32,7 @@ sealed interface CaptureState {
     data object Saving : CaptureState // User confirmed, compressing + writing to disk
     //data class Saved(val file: File) : CaptureState //written to disk
     data class Recognizing(val file: File): CaptureState //image is on disk, on-device OCR is running
-    data class Recognized(val file: File, val text: RecognizedText): CaptureState //OCR finished, raw text blocks are ready
+    data class Recognized(val file: File, val text: RecognizedText, val extraction: ReceiptExtraction): CaptureState //OCR finished, raw text blocks are ready
     data class RecognitionFailed(val file: File, val message: String): CaptureState // OCR failed, image is still saved so the user can enter data by hand
     data class Error(val message: String) : CaptureState // camera, decode, processing or save error; retry possible
 }
@@ -35,8 +42,10 @@ class ScanViewModel @Inject constructor(
     private val detectDocumentEdges: DetectDocumentEdgesUseCase,
     private val correctPerspective: CorrectPerspectiveUseCase,
     private val saveCorrectedImage : SaveCorrectedReceiptImageUseCase,
-    private val recognizeReceiptText: RecognizeReceiptTextUseCase
+    private val recognizeReceiptText: RecognizeReceiptTextUseCase,
+    private val extractReceiptData: ExtractReceiptDataUseCase
 ) : ViewModel() {
+    private val clock = Clock.systemDefaultZone()
     private val _permissionStatus = MutableStateFlow(CameraPermissionStatus.UNKNOWN)
     val permissionStatus: StateFlow<CameraPermissionStatus> = _permissionStatus.asStateFlow()
 
@@ -87,16 +96,29 @@ class ScanViewModel @Inject constructor(
                 return@launch
             }
             _captureState.value = CaptureState.Recognizing(file)
-            runCatching { recognizeReceiptText(corrected) }.fold(
-                onSuccess = { text -> _captureState.value = CaptureState.Recognized(file, text) },
+            runCatching {
+                val text = recognizeReceiptText(corrected)
+                text to withContext(Dispatchers.Default) { extractReceiptData(text, clock)}
+            }.fold(
+                onSuccess = { (text, extraction) -> _captureState.value = CaptureState.Recognized(file, text, extraction) },
                 onFailure = { error -> _captureState.value = CaptureState.RecognitionFailed(file, error.message ?: "Text recognition failed.") }
             )
         }
     }
 
     // Scan result was handed over to the receipt form; back on this screen the camera is ready again
-    fun onScanHandedOff() {
+    fun continueToForm(): Pair<String, ReceiptFormInputs>? {
+        val (file, extraction) = when (val state = _captureState.value) {
+            is CaptureState.Recognized -> state.file to state.extraction
+            is CaptureState.RecognitionFailed -> state.file to null
+            else -> return null
+        }
         _captureState.value = CaptureState.Idle
+        val inputs = extraction
+            ?.toDraft(clock.zone, ReceiptFormInputs.DEFAULT_CURRENCY)
+            ?.toFormInputs(clock.zone)
+            ?: ReceiptFormInputs()
+        return file.absolutePath to inputs
     }
 
     fun onRetake() {
