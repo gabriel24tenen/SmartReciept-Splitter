@@ -28,17 +28,20 @@ class ParseTotalAmountUseCase @Inject constructor() {
         if(EXCLUDED.any { it in label }) return null
         val priority = PRIORITIES.firstOrNull { (keywords, _) -> keywords.any { it in label } }?.second ?: return null
 
-        val amount = rows[index].lastPositiveAmount()
+        val amount = rows[index].totalAmount()
             ?: rows.getOrNull(index + 1)
                 ?.takeIf { next -> next.keywordText in CURRENCY_ONLY }
-                ?.lastPositiveAmount()
+                ?.totalAmount()
             ?:return null
         return Candidate(cents = amount, priority = priority)
     }
 
-    private fun ReceiptRow.lastPositiveAmount(): Long? =
-        findAmounts(text).lastOrNull() { !it.isNegative && it.cents > 0}?.cents
-
+    //Total is the largest in the row
+    private fun ReceiptRow.totalAmount(): Long? {
+        val amounts = findAmounts(text).filter { !it.isNegative && it.cents > 0 }.map { it.cents }
+        val last = amounts.lastOrNull() ?: return null
+        return last.takeIf { it == amounts.max() }
+    }
     private data class Candidate(val cents: Long, val priority: Int)
 
     private companion object {
