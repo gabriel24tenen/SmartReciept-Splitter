@@ -231,7 +231,7 @@ private fun SplitContent(
         item(key = "preview-title") { SectionTitle("Split preview") }
         if(state.hasInvalidInput) {
             item(key = "preview-invalid") {
-                Text("Enter amounts like 12.50 (at most two decimals.", color = MaterialTheme.colorScheme.error)
+                Text("Enter amounts like 12.50 (at most two decimals).", color = MaterialTheme.colorScheme.error)
             }
         }
         when (val calculation = state.calculation) {
@@ -251,7 +251,7 @@ private fun SplitContent(
                 }
             }
             is SplitCalculation.Invalid -> item(key="preview-error") {
-                Text(calculation.error.message(calculation.error.message(currency)), color = MaterialTheme.colorScheme.error)
+                Text(calculation.error.message(currency), color = MaterialTheme.colorScheme.error)
             }
             null -> Unit
         }
