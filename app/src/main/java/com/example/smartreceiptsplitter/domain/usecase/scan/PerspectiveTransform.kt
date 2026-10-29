@@ -28,8 +28,12 @@ internal fun computeOutputSize(srcPoints: FloatArray): Pair<Int, Int> {
     val heightLeft = hypot(blX - tlX, blY - tlY)
     val heightRight = hypot(brX - trX, brY - trY)
 
-    val width = maxOf(widthTop, widthBottom).roundToInt().coerceIn(1, MAX_OUTPUT_DIMENSION)
-    val height = maxOf(heightLeft, heightRight).roundToInt().coerceIn(1, MAX_OUTPUT_DIMENSION)
+    val rawWidth = maxOf(widthTop, widthBottom)
+    val rawHeight = maxOf(heightLeft, heightRight)
+
+    val scale = minOf(1f, MAX_OUTPUT_DIMENSION / maxOf(rawWidth, rawHeight, 1f))
+    val width = (rawWidth * scale).roundToInt().coerceIn(1, MAX_OUTPUT_DIMENSION)
+    val height = (rawHeight * scale).roundToInt().coerceIn(1, MAX_OUTPUT_DIMENSION)
     return width to height
 }
 
