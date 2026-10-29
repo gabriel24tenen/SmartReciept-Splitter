@@ -89,4 +89,15 @@ class ParseTaxAmountUseCaseTest {
     fun toleratesLetterOReadInsteadOfZero() {
         assertEquals(50L, parse("PDV 25% | 2,OO | O,5O"))
     }
+
+    @Test
+    fun itemRowsBelowHeaderWithPdvColumnAreNotTax() {
+        // "PDV" in the header starts a tax table, but "2,8%" is part of the product name and 1,19 is its price
+        assertNull(parse("Naziv | Cijena | PDV", "Mlijeko 2,8% 1L | 1,19", "Kruh | 1,29", "UKUPNO | 2,48"))
+    }
+
+    @Test
+    fun realVatRowIsStillReadBelowItemTableWithPdvColumn() {
+        assertEquals(6L, parse("Naziv | Cijena | PDV", "Mlijeko 2,8% 1L | 1,19", "UKUPNO | 1,19", "PDV 5% | 1,13 | 0,06"))
+    }
 }
