@@ -4,7 +4,7 @@ import com.example.smartreceiptsplitter.data.ocr.MLKitTextRecognitionRepository
 import com.example.smartreceiptsplitter.data.repository.PersonRepositoryImpl
 import com.example.smartreceiptsplitter.data.repository.ReceiptRepositoryImpl
 import com.example.smartreceiptsplitter.data.repository.ReceiptSplitRepositoryImpl
-import com.example.smartreceiptsplitter.data.repository.TextRecognitionRepository
+import com.example.smartreceiptsplitter.domain.repository.TextRecognitionRepository
 import com.example.smartreceiptsplitter.domain.repository.PersonRepository
 import com.example.smartreceiptsplitter.domain.repository.ReceiptRepository
 import com.example.smartreceiptsplitter.domain.repository.ReceiptSplitRepository
