@@ -9,6 +9,7 @@ import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import com.example.smartreceiptsplitter.domain.usecase.ocr.ExtractReceiptDataUseCase
 import com.example.smartreceiptsplitter.domain.usecase.ocr.RecognizeReceiptTextUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.CorrectPerspectiveUseCase
+import com.example.smartreceiptsplitter.domain.usecase.scan.DeleteReceiptImageUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.DetectDocumentEdgesUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.SaveCorrectedReceiptImageUseCase
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
@@ -43,7 +44,8 @@ class ScanViewModel @Inject constructor(
     private val correctPerspective: CorrectPerspectiveUseCase,
     private val saveCorrectedImage : SaveCorrectedReceiptImageUseCase,
     private val recognizeReceiptText: RecognizeReceiptTextUseCase,
-    private val extractReceiptData: ExtractReceiptDataUseCase
+    private val extractReceiptData: ExtractReceiptDataUseCase,
+    private val deleteReceiptImage: DeleteReceiptImageUseCase
 ) : ViewModel() {
     private val clock = Clock.systemDefaultZone()
     private val _permissionStatus = MutableStateFlow(CameraPermissionStatus.UNKNOWN)
@@ -122,7 +124,13 @@ class ScanViewModel @Inject constructor(
     }
 
     fun onRetake() {
+        val unusedImage = when (val state = _captureState.value) {
+            is CaptureState.Recognized -> state.file
+            is CaptureState.RecognitionFailed -> state.file
+            else -> null
+        }
         _captureState.value = CaptureState.Idle
+        unusedImage?.let { file -> viewModelScope.launch { deleteReceiptImage(file) } }
     }
 
     fun onAlreadyGranted() {
