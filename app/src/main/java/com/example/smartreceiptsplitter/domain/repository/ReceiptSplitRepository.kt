@@ -5,5 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface ReceiptSplitRepository {
     fun observeSplits(receiptId: Long): Flow<List<ReceiptSplit>>
-    suspend fun saveSplits(receiptId: Long, splits: List<ReceiptSplit>)
+    suspend fun saveSplits(receiptId: Long, splits: List<ReceiptSplit>, receiptTipAmount: Long?)
 }

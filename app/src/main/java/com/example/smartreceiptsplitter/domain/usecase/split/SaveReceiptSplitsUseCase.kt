@@ -8,5 +8,8 @@ class SaveReceiptSplitsUseCase @Inject constructor(
     private val repository: ReceiptSplitRepository
 ) {
     suspend operator fun invoke(receiptId: Long, splits: List<ReceiptSplit>) =
-        repository.saveSplits(receiptId, splits)
+        repository.saveSplits(receiptId, splits, receiptTipAmount = tipOf(splits))
+
+    private fun tipOf(splits: List<ReceiptSplit>): Long? =
+        splits.sumOf { it.tipShare ?: 0L }.takeIf { it > 0 }
 }
