@@ -28,7 +28,9 @@ class ParseTaxAmountUseCase @Inject constructor() {
                     if (rate == null && words.any { it in SUMMARY_WORDS } && amounts.size == 1) {
                         summaries += amounts.single() // "Ukupno PDV 3,30"
                     } else {
-                        taxFromRow(rate, amounts)?.let { tax -> perRate += (rate ?: -1.0) to tax }
+                        // A table row without a tax word must fit its rate: an item row like "Mlijeko 2,8% 1L 1,19"
+                        // below a "Naziv | Cijena | PDV" header has a percentage too, but its amount is a price
+                        taxFromRow(rate, amounts, requireRateMatch = !isTaxRow)?.let { tax -> perRate += (rate ?: -1.0) to tax }
                     }
                 }
 
@@ -38,9 +40,10 @@ class ParseTaxAmountUseCase @Inject constructor() {
         return summaries.lastOrNull() ?: perRate.takeIf { it.isNotEmpty() }?.sumOf { it.second }
     }
 
-    private fun taxFromRow(rate: Double?, amounts: List<Long>): Long? {
+    //@param RequireRateMatch is true for rows without a tax word, a single amount can't be checked against the rate, so it isn't taken
+    private fun taxFromRow(rate: Double?, amounts: List<Long>, requireRateMatch: Boolean): Long? {
         if (amounts.isEmpty()) return null
-        if (amounts.size == 1) return amounts.single()
+        if (amounts.size == 1) return if(requireRateMatch) null else amounts.single()
         if (rate == null) return null // "PDV 5,00 3,00": no way to tell which one is the tax
         if (rate == 0.0) return 0L
         // base x rate = tax ("25% 8,00 2,00") or gross x rate / (100 + rate) = tax ("19% 15,96 3,03 18,99")

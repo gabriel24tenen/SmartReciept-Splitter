@@ -1,7 +1,7 @@
 package com.example.smartreceiptsplitter.domain.usecase.ocr
 
 import android.graphics.Bitmap
-import com.example.smartreceiptsplitter.data.repository.TextRecognitionRepository
+import com.example.smartreceiptsplitter.domain.repository.TextRecognitionRepository
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import javax.inject.Inject
 

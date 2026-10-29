@@ -24,7 +24,10 @@ class ParseLineItemsUseCase @Inject constructor() {
 
     operator fun invoke(text: RecognizedText): List<ParsedReceiptItem> {
         val rows = text.toRows()
-        val end = rows.indexOfFirst { row -> ITEMS_END.any { it in row.keywordText } }.takeIf { it >= 0 } ?: rows.size
+        // A totals row has an amount, on the same row or alone on the row below ("UKUPNO:" / "12,50 EUR");  a column header like "Naziv | Kol | Cijena | Ukupno" has none
+        val end = rows.indices.firstOrNull { index ->
+            (findAmounts(rows[index].text).isNotEmpty() || rows.getOrNull(index + 1)?.isAmountOnly() == true)
+        } ?: rows.size
 
         val items = mutableListOf<ParsedReceiptItem>()
         var pendingName: String? = null // a name row without an amount, waiting for its quantity row

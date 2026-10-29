@@ -114,4 +114,15 @@ class ParseTotalAmountUseCaseTest {
     fun returnsNullForEmptyText() {
         assertNull(parseTotal(receiptText()))
     }
+
+    @Test
+    fun doesNotTakeVatTableTotalRowAsReceiptTotal() {
+        // base and VAT columns of a tax table: 0,40 is the VAT, not the total
+        assertNull(parseTotal(receiptText("Kava | 2,00", "Stopa | Osnovica | PDV", "25% | 1,60 | 0,40", "UKUPNO | 1,60 | 0,40")))
+    }
+
+    @Test
+    fun takesLargestAmountWhenTotalRowEndsWithGross() {
+        assertEquals(1250L, parseTotal(receiptText("UKUPNO | 10,00 | 2,50 | 12,50")))
+    }
 }

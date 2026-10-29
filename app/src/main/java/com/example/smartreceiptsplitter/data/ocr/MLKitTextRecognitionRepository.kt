@@ -2,7 +2,7 @@ package com.example.smartreceiptsplitter.data.ocr
 
 import android.graphics.Bitmap
 import android.graphics.Rect
-import com.example.smartreceiptsplitter.data.repository.TextRecognitionRepository
+import com.example.smartreceiptsplitter.domain.repository.TextRecognitionRepository
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import com.example.smartreceiptsplitter.domain.model.RecognizedTextBlock
 import com.example.smartreceiptsplitter.domain.model.RecognizedTextLine

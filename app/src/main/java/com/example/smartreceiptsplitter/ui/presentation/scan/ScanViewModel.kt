@@ -9,6 +9,7 @@ import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import com.example.smartreceiptsplitter.domain.usecase.ocr.ExtractReceiptDataUseCase
 import com.example.smartreceiptsplitter.domain.usecase.ocr.RecognizeReceiptTextUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.CorrectPerspectiveUseCase
+import com.example.smartreceiptsplitter.domain.usecase.scan.DeleteReceiptImageUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.DetectDocumentEdgesUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.SaveCorrectedReceiptImageUseCase
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
@@ -30,7 +31,6 @@ sealed interface CaptureState {
     data object Processing : CaptureState // capture just happened, detection + correction running
     data class Review(val correctedBitmap: Bitmap, val isConfident: Boolean) : CaptureState // corrected image ready for the user to accept or discard
     data object Saving : CaptureState // User confirmed, compressing + writing to disk
-    //data class Saved(val file: File) : CaptureState //written to disk
     data class Recognizing(val file: File): CaptureState //image is on disk, on-device OCR is running
     data class Recognized(val file: File, val text: RecognizedText, val extraction: ReceiptExtraction): CaptureState //OCR finished, raw text blocks are ready
     data class RecognitionFailed(val file: File, val message: String): CaptureState // OCR failed, image is still saved so the user can enter data by hand
@@ -43,7 +43,8 @@ class ScanViewModel @Inject constructor(
     private val correctPerspective: CorrectPerspectiveUseCase,
     private val saveCorrectedImage : SaveCorrectedReceiptImageUseCase,
     private val recognizeReceiptText: RecognizeReceiptTextUseCase,
-    private val extractReceiptData: ExtractReceiptDataUseCase
+    private val extractReceiptData: ExtractReceiptDataUseCase,
+    private val deleteReceiptImage: DeleteReceiptImageUseCase
 ) : ViewModel() {
     private val clock = Clock.systemDefaultZone()
     private val _permissionStatus = MutableStateFlow(CameraPermissionStatus.UNKNOWN)
@@ -122,7 +123,13 @@ class ScanViewModel @Inject constructor(
     }
 
     fun onRetake() {
+        val unusedImage = when (val state = _captureState.value) {
+            is CaptureState.Recognized -> state.file
+            is CaptureState.RecognitionFailed -> state.file
+            else -> null
+        }
         _captureState.value = CaptureState.Idle
+        unusedImage?.let { file -> viewModelScope.launch { deleteReceiptImage(file) } }
     }
 
     fun onAlreadyGranted() {

@@ -34,4 +34,6 @@ internal fun String.toKeywordText(): String =
 // spaces, digits and punctuation are kept
 internal fun String.toUppercaseWithoutDiacritics(): String =
     Normalizer.normalize(uppercase().replace('Đ', 'D'), Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
+internal fun ReceiptRow.isAmountOnly(): Boolean = keywordText in CURRENCY_ONLY && findAmounts(text).isNotEmpty()
+internal val CURRENCY_ONLY = setOf("", "EUR", "EURA", "USD", "GBP", "CHF")
 private val ZERO_AS_LETTER_0 = Regex("""(?<=[A-Z]\s?)0(?![\d.,])|0(?=[A-Z])""")
