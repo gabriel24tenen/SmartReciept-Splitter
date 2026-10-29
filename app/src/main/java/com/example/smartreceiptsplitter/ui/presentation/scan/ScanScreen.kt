@@ -76,7 +76,6 @@ import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
 import com.example.smartreceiptsplitter.ui.util.formatMoney
 import kotlinx.coroutines.launch
-import java.io.File
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 

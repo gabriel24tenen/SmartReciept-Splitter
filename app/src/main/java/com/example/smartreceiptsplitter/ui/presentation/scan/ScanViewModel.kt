@@ -31,7 +31,6 @@ sealed interface CaptureState {
     data object Processing : CaptureState // capture just happened, detection + correction running
     data class Review(val correctedBitmap: Bitmap, val isConfident: Boolean) : CaptureState // corrected image ready for the user to accept or discard
     data object Saving : CaptureState // User confirmed, compressing + writing to disk
-    //data class Saved(val file: File) : CaptureState //written to disk
     data class Recognizing(val file: File): CaptureState //image is on disk, on-device OCR is running
     data class Recognized(val file: File, val text: RecognizedText, val extraction: ReceiptExtraction): CaptureState //OCR finished, raw text blocks are ready
     data class RecognitionFailed(val file: File, val message: String): CaptureState // OCR failed, image is still saved so the user can enter data by hand
