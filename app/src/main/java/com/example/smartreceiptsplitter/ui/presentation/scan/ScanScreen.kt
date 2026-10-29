@@ -3,9 +3,6 @@ package com.example.smartreceiptsplitter.ui.presentation.scan
 import android.content.ClipData
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
@@ -140,6 +137,7 @@ fun ScanScreen (
             CameraPermissionStatus.GRANTED -> {
                 ScanCaptureFlow(
                     captureState = captureState,
+                    onCaptureStarted = viewModel::onCaptureStarted,
                     onPhotoCaptured = viewModel::onPhotoCaptured,
                     onCaptureFailed = viewModel::onCaptureFailed,
                     onConfirm = viewModel::onConfirm,
@@ -191,7 +189,8 @@ fun ScanScreen (
 @Composable
 private fun ScanCaptureFlow(
     captureState: CaptureState,
-    onPhotoCaptured: (Bitmap) -> Unit,
+    onCaptureStarted: () -> Unit,
+    onPhotoCaptured: (CapturedPhoto) -> Unit,
     onCaptureFailed: (String) -> Unit,
     onConfirm: () -> Unit,
     onRetake: () -> Unit,
@@ -211,15 +210,15 @@ private fun ScanCaptureFlow(
                         onClick = {
                             controller.takePicture(ContextCompat.getMainExecutor(context), object : ImageCapture.OnImageCapturedCallback() {
                                 override fun onCaptureSuccess(image: ImageProxy) {
-                                    val bitmap = try {
-                                        image.toRotateBitmap()
+                                    val photo = try {
+                                        image.toCapturedPhoto()
                                     } catch (t: Throwable) {
-                                        image.close()
-                                        onCaptureFailed( t.message ?: "Image decoding failed.")
+                                        onCaptureFailed(t.message ?: "Image reading failed.")
                                         return
+                                    } finally {
+                                        image.close()
                                     }
-                                    image.close()
-                                    onPhotoCaptured(bitmap)
+                                    onPhotoCaptured(photo)
                                 }
 
                                 override fun onError(exception: ImageCaptureException) {
@@ -465,16 +464,6 @@ private fun PermissionRationale(
             Text(buttonLabel)
         }
     }
-}
-
-private fun ImageProxy.toRotateBitmap(): Bitmap {
-    val buffer = planes[0].buffer
-    val bytes = ByteArray(buffer.remaining()).also { buffer.get(it) }
-    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: error("Unable to decode captured image.")
-    val rotationDegrees = imageInfo.rotationDegrees
-    if(rotationDegrees == 0) return bitmap
-    val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
-    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 }
 
 private fun android.content.Context.findActivity(): android.app.Activity {
