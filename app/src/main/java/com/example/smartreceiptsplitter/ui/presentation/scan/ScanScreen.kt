@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ImageCapture
@@ -118,6 +119,20 @@ fun ScanScreen (
             viewModel.onAlreadyGranted()
         } else {
             permissionLauncher.launch(android.Manifest.permission.CAMERA)
+        }
+    }
+
+    BackHandler(enabled = permissionStatus == CameraPermissionStatus.GRANTED && captureState != CaptureState.Idle) {
+        when (captureState) {
+            is CaptureState.Review,
+            is CaptureState.Recognized,
+            is CaptureState.RecognitionFailed,
+            is CaptureState.Error -> viewModel.onRetake()
+
+            CaptureState.Processing,
+            CaptureState.Saving,
+            is CaptureState.Recognizing,
+            CaptureState.Idle -> Unit
         }
     }
 
