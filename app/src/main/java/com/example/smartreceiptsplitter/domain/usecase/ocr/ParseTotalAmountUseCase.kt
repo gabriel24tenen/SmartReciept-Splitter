@@ -64,6 +64,6 @@ class ParseTotalAmountUseCase @Inject constructor() {
             "KOLICIN", "ARTIK", "STAVK", "ITEMS"
         )
 
-        val CURRENCY_ONLY = setOf("", "EUR", "EURA", "USD", "GBP", "CHF")
+        //val CURRENCY_ONLY = setOf("", "EUR", "EURA", "USD", "GBP", "CHF") -- moved to @property ReceiptRows.kt
     }
 }

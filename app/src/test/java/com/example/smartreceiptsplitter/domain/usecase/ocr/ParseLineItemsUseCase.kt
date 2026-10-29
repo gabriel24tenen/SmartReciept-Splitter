@@ -112,4 +112,20 @@ class ParseLineItemsUseCaseTest {
         assertTrue(parse().isEmpty())
         assertTrue(parse("KONZUM", "UKUPNO | 2,48").isEmpty())
     }
+
+    @Test
+    fun columnHeaderWithTotalWordDoesNotEndTheItems() {
+        val items = parse(
+            "Naziv | Kol | Cijena | Ukupno",
+            "Kava | 2 | 1,50 | 3,00",
+            "Sok | 1 | 2,50 | 2,50",
+            "UKUPNO EUR | 5,50"
+        )
+        assertEquals(listOf(item("Kava", 300, 2.0, 150), item("Sok", 250, 1.0, 250)), items)
+    }
+
+    @Test
+    fun totalLabelWithAmountOnTheRowBelowEndsTheItems() {
+        assertEquals(listOf(item("Kava", 150)), parse("Kava | 1,50", "UKUPNO:", "1,50 EUR", "Reklama | 2,00"))
+    }
 }
