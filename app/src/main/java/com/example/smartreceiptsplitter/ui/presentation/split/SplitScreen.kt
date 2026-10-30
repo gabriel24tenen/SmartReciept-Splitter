@@ -1,6 +1,7 @@
 package com.example.smartreceiptsplitter.ui.presentation.split
 
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,8 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -59,10 +62,16 @@ fun SplitScreen(
 ){
     val state by viewModel.state.collectAsState()
     var showAddPerson by remember { mutableStateOf(false) }
+    var showLeaveOutdated by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.isSaved) {
         if(state.isSaved) onSaved()
     }
+
+    fun requestedBack() {
+        if (state.isSplitOutdated && !state.isSaved) showLeaveOutdated = true else onBack()
+    }
+    BackHandler(enabled = state.isSplitOutdated && !state.isSaved) { showLeaveOutdated = true }
 
     Scaffold(
         modifier = modifier,
@@ -74,12 +83,12 @@ fun SplitScreen(
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
+                OutlinedButton(onClick = { requestedBack() }, modifier = Modifier.weight(1f)) { Text("Back") }
                 Button(
                     onClick = viewModel::onSave,
                     enabled = state.calculation is SplitCalculation.Success && !state.isSaving,
                     modifier = Modifier.weight(1f)
-                ) { Text("Save split") }
+                ) { Text("Save split")}
             }
         }
     ) { padding ->
@@ -106,6 +115,21 @@ fun SplitScreen(
                     onTaxAmountChange = viewModel::onTaxAmountChange,
                     onTipAmountChange = viewModel::onTipAmountChange
                 )
+            )
+        }
+
+        if(showLeaveOutdated) {
+            LeaveOutdatedSplitDialog(
+                canSave = state.calculation is SplitCalculation.Success && !state.isSaving,
+                onSave = {
+                    showLeaveOutdated = false
+                    viewModel.onSave()
+                },
+                onStay = { showLeaveOutdated = false },
+                onLeave = {
+                    showLeaveOutdated = false
+                    onBack()
+                }
             )
         }
 
@@ -162,6 +186,23 @@ private fun SplitContent(
                 Text(receipt.merchantName ?: "Receipt", style = MaterialTheme.typography.headlineSmall)
                 Text("Total: ${formatMoney(receipt.totalAmount, currency)}")
                 receipt.taxAmount?.let { Text("Tax: ${formatMoney(it, currency)}") }
+            }
+        }
+        if(state.isSplitOutdated){
+            item(key = "outdated") {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "The receipt was changed after this split was saved, so the saved split no longer adds up." +
+                                "Check the amounts below and save the split again.",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
         item(key = "participants.title") { Text("Participants", style = MaterialTheme.typography.titleMedium) }
@@ -350,4 +391,31 @@ private fun SplitError.message(currency: String): String = when(this) {
         if (difference > 0) "$what: ${formatMoney(difference, currency)} still to assign."
         else "$what: ${formatMoney(-difference, currency)} over the total."
     }
+}
+
+@Composable
+private fun LeaveOutdatedSplitDialog(
+    canSave: Boolean,
+    onSave: () -> Unit,
+    onStay: () -> Unit,
+    onLeave: () -> Unit
+){
+    AlertDialog(
+        onDismissRequest = onStay,
+        title = { Text("Split is out of date")},
+        text = {
+            Text(
+                if(canSave) "The saved split doesn't match the receipt anymore . Save the recalculated split before leaving?"
+                else "The saved split doesn't match the receipt anymore, and the amounts above still have to be corrected. " +
+                "If you leave now, the old split stays saved."
+            )
+        },
+        confirmButton = {
+            if(canSave) TextButton(onClick = onSave) { Text("Save split") }
+            else TextButton(onClick = onStay) { Text("Correct amounts") }
+        },
+        dismissButton = {
+            TextButton(onClick = onLeave) { Text("leave anyway") }
+        }
+    )
 }
