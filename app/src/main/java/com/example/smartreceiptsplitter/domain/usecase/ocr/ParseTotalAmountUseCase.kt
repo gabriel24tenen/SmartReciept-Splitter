@@ -64,6 +64,9 @@ class ParseTotalAmountUseCase @Inject constructor() {
             "KOLICIN", "ARTIK", "STAVK", "ITEMS"
         )
 
+        val TAX_WORDS = listOf("PDV", "VAT", "TAX", "POREZ", "MWST", "IVA")
+        val INCLUDING_WORDS = setOf("S", "SA", "INCL", "INKL", "INCLUDING", "INCLUDED")
+
         //val CURRENCY_ONLY = setOf("", "EUR", "EURA", "USD", "GBP", "CHF") -- moved to @property ReceiptRows.kt
     }
 }

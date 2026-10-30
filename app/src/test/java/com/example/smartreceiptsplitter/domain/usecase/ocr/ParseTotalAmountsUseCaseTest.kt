@@ -125,4 +125,18 @@ class ParseTotalAmountUseCaseTest {
     fun takesLargestAmountWhenTotalRowEndsWithGross() {
         assertEquals(1250L, parseTotal(receiptText("UKUPNO | 10,00 | 2,50 | 12,50")))
     }
+
+    @Test
+    fun totalThatIncludesTaxIsRead() {
+        assertEquals(1250L, parseTotal(receiptText("Kava | 2,00", "UKUPNO S PDV-om | 12,50")))
+        assertEquals(1250L, parseTotal(receiptText("Coffee | 2.00", "TOTAL incl. VAT | 12.50")))
+        assertEquals(1250L, parseTotal(receiptText("Ukupno uključujući PDV | 12,50")))
+    }
+
+    @Test
+    fun taxTotalWithoutIncludingWordIsStillIgnored() {
+        assertEquals(1250L, parseTotal(receiptText("UKUPNO | 12,50", "UKUPNO PDV | 2,50")))
+        assertNull(parseTotal(receiptText("TOTAL TAX | 2,50")))
+        assertNull(parseTotal(receiptText("UKUPNO BEZ PDV-a | 10,00")))
+    }
 }
