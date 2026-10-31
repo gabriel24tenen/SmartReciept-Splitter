@@ -178,7 +178,7 @@ class ParseLineItemsUseCase @Inject constructor() {
         // "2 x", "2,000 x", "1,250 kg x", "3 kom *"
         val TIMES = Regex("""(?<![\d.,])(\d{1,4}(?:[.,]\d{1,3})?)\s*(?:[A-Za-z]{1,3}\.?)?\s*[xX×*]\s*(?=\d)""")
         // "2 Pivo ..." - small whole number, then a word
-        val LEADING_QUANTITY = Regex("""^(\d{1,2})\s+(?=\p{L})""")
+        val LEADING_QUANTITY = Regex("""^([1-9]\d?)\s+(?=\p{L})""")
         // "Kava 2 " right before the first amount
         val QUANTITY_BEFORE_AMOUNT = Regex("""(?<=\s)(\d{1,4}(?:[.,]\d{1,3})?)\s*$""")
         // Article code at the start of the name: "123456 Kruh"
