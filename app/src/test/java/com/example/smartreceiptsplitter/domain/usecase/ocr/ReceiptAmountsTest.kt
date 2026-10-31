@@ -56,4 +56,11 @@ class ReceiptAmountsTest {
         assertEquals(listOf(1250L), cents("12,5O"))
         assertEquals(listOf(10000L), cents("1OO,OO"))
     }
+
+    @Test
+    fun minusUsedAsSeparatorIsNotNegative() {
+        assertTrue(!findAmounts("12,50 - Kartica").single().isNegative)
+        assertTrue(!findAmounts("Kava 1,50 - 2 kom").first().isNegative)
+        assertTrue(findAmounts("POPUST 1,50 - ").single().isNegative)
+    }
 }

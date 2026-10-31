@@ -4,7 +4,7 @@ package com.example.smartreceiptsplitter.domain.usecase.ocr
 data class AmountMatch(val cents: Long, val isNegative: Boolean, val range: IntRange)
 
 private val AMOUNT_REGEX = Regex(
-    """(?<![\d.,])(-\s?)?(\d{1,3}(?:[.,]\d{3})+|\d+)[.,](\d{2})(?![\d%])(?![.,]\d)(\s?-)?"""
+    """(?<![\d.,])(-\s?)?(\d{1,3}(?:[.,]\d{3})+|\d+)[.,](\d{2})(?![\d%])(?![.,]\d)(\s?-(?=\s*$))?"""
 )
 
 fun findAmounts(text: String): List<AmountMatch> {
