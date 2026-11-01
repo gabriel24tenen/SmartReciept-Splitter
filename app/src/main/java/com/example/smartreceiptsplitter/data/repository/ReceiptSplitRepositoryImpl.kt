@@ -1,6 +1,7 @@
 package com.example.smartreceiptsplitter.data.repository
 
 import androidx.room.withTransaction
+import com.example.smartreceiptsplitter.data.local.dao.ReceiptDao
 import com.example.smartreceiptsplitter.data.local.dao.ReceiptSplitDao
 import com.example.smartreceiptsplitter.data.local.database.AppDatabase
 import com.example.smartreceiptsplitter.data.local.entity.ReceiptSplitEntity
@@ -12,7 +13,8 @@ import javax.inject.Inject
 
 class ReceiptSplitRepositoryImpl @Inject constructor(
     private val database: AppDatabase,
-    private val splitDao: ReceiptSplitDao
+    private val splitDao: ReceiptSplitDao,
+    private val receiptDao: ReceiptDao
 ): ReceiptSplitRepository {
     override fun observeSplits(receiptId: Long): Flow<List<ReceiptSplit>> =
         splitDao.getForReceipt(receiptId).map { list -> list.map { it.toDomain() } }
@@ -33,6 +35,7 @@ class ReceiptSplitRepositoryImpl @Inject constructor(
                     paidAt = old?.paidAt ?: split.paidAt
                 ).toEntity()
             })
+            receiptDao.updateTipAmount(receiptId, receiptTipAmount)
         }
     }
 
