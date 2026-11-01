@@ -12,6 +12,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -199,9 +200,13 @@ private fun ScanCaptureFlow(
     val context = LocalContext.current
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
 
+    val cameraActive = captureState == CaptureState.Idle || captureState == CaptureState.Processing
     Box(modifier = Modifier.fillMaxSize()) {
-        CameraPreview( modifier = Modifier.fillMaxSize(), onImageCaptureReady = { imageCapture = it } )
-
+        if(cameraActive) {
+            CameraPreview(
+                modifier = Modifier.fillMaxSize(),
+                onImageCaptureReady = { imageCapture = it })
+        }
         when(captureState) {
             CaptureState.Idle -> {
                 imageCapture?.let { controller ->
@@ -267,7 +272,7 @@ private fun ShutterButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
 
 @Composable
 private fun LoadingOverlay(label: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(12.dp))
@@ -282,7 +287,7 @@ private fun ReviewOverlay(
     onConfirm: () -> Unit,
     onRetake: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding()) {
         Image(
             bitmap = state.correctedBitmap.asImageBitmap(),
             contentDescription = null,
@@ -294,7 +299,8 @@ private fun ReviewOverlay(
                 text = "Receipt's edges are not safely recognized - check if picture is readable.",
                 modifier = Modifier.fillMaxWidth().padding(8.dp),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White
             )
         }
         Row(
@@ -432,14 +438,19 @@ private fun RecognitionFailedOverlay(
 
 @Composable
 private fun ErrorOverlay(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Text (message, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Try again.") }
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(message, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onRetry) { Text("Try again.") }
+        }
     }
 }
 
