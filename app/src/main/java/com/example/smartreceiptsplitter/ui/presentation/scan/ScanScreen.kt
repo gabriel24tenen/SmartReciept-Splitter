@@ -112,10 +112,12 @@ fun ScanScreen (
     LaunchedEffect(Unit) {
         val alreadyGranted = ContextCompat.checkSelfPermission( context, android.Manifest.permission.CAMERA ) == PackageManager.PERMISSION_GRANTED
 
-        if(alreadyGranted) {
-            viewModel.onAlreadyGranted()
-        } else {
-            permissionLauncher.launch(android.Manifest.permission.CAMERA)
+        when {
+            alreadyGranted -> viewModel.onAlreadyGranted()
+            //only asking the first time, after that a refusal the rationale screeen has its own button
+            // coming from Histroy or the form doesn't open the system dialog again
+            viewModel.permissionStatus.value == CameraPermissionStatus.UNKNOWN ->
+                permissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
