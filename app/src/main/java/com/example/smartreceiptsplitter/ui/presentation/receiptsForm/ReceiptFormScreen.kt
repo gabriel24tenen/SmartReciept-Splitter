@@ -189,6 +189,6 @@ private fun ReceiptFieldError.message(field: ReceiptField): String = when (this)
     ReceiptFieldError.NEGATIVE -> "Can't be negative"
     ReceiptFieldError.TOO_LARGE -> "Maximum is ${formatMoneyInput(ReceiptLimits.MAX_AMOUNT)}"
     ReceiptFieldError.TOO_LONG -> "At most ${ReceiptLimits.MAX_MERCHANT_LENGTH} characters"
-    ReceiptFieldError.TAX_EXCEEDS_TOTAL -> "Tax can't be higher than the total"
+    ReceiptFieldError.TAX_EXCEEDS_TOTAL -> "Tax must be lower than the total"
     ReceiptFieldError.DATE_IN_FUTURE -> "Date can't be in the future"
 }

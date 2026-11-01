@@ -80,10 +80,9 @@ class ReceiptFormInputsTest {
     // ---- required
 
     @Test
-    fun emptyFormReportsRequiredMerchantDateAndTotal() {
+    fun emptyFormReportsRequiredDateAndTotal() {
         assertEquals(
             mapOf(
-                ReceiptField.MERCHANT to ReceiptFieldError.REQUIRED,
                 ReceiptField.DATE to ReceiptFieldError.REQUIRED,
                 ReceiptField.TOTAL to ReceiptFieldError.REQUIRED
             ),
@@ -142,7 +141,6 @@ class ReceiptFormInputsTest {
     fun unreadableAndInvalidFieldsAreReportedTogether() {
         assertEquals(
             mapOf(
-                ReceiptField.MERCHANT to ReceiptFieldError.REQUIRED,
                 ReceiptField.DATE to ReceiptFieldError.DATE_IN_FUTURE,
                 ReceiptField.TOTAL to ReceiptFieldError.INVALID_FORMAT,
                 ReceiptField.CURRENCY to ReceiptFieldError.INVALID_FORMAT
@@ -175,7 +173,7 @@ class ReceiptFormInputsTest {
         // OCR read a tax that is higher than the total
         val text = ReceiptDraft("Konzum", startOfDay(2026, 10, 19), 1000, 5000, null, "EUR").toFormInputs(zone)
         assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, errors(text)[ReceiptField.TAX])
-        val corrected = text.copy(total = "50")
-        assertEquals(5000L, (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount)
+        val corrected = text.copy(total = "60")
+        assertEquals(6000L, (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount)
     }
 }

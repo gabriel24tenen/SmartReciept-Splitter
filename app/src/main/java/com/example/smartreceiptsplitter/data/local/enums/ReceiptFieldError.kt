@@ -7,6 +7,6 @@ enum class ReceiptFieldError {
     NEGATIVE,           // tax or tip below zero
     TOO_LARGE,          // above ReceiptLimits.MAX_AMOUNT
     TOO_LONG,           // text above ReceiptLimits.MAX_MERCHANT_LENGTH
-    TAX_EXCEEDS_TOTAL,
+    TAX_EXCEEDS_TOTAL,  // tax not lower than the total
     DATE_IN_FUTURE
 }

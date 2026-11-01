@@ -65,12 +65,18 @@ class ScanViewModel @Inject constructor(
         hasRequestedPermission = true
     }
 
-    fun onPhotoCaptured(rawPhoto: Bitmap) {
+    fun onCaptureStarted() {
+        if (_captureState.value == CaptureState.Idle) _captureState.value = CaptureState.Processing
+    }
+
+    fun onPhotoCaptured(photo: CapturedPhoto) {
         _captureState.value = CaptureState.Processing
         viewModelScope.launch {
             runCatching {
+                val rawPhoto = withContext(Dispatchers.Default) { decodeCapturedPhoto(photo) }
                 val corners = detectDocumentEdges(rawPhoto)
                 val corrected = correctPerspective(rawPhoto, corners)
+                if(corrected !== rawPhoto) rawPhoto.recycle()
                 corrected to corners.isConfident
             }.fold(
                 onSuccess = { (corrected, isConfident) ->

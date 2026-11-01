@@ -4,7 +4,7 @@ import com.example.smartreceiptsplitter.data.local.enums.ReceiptField
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptFieldError
 
 data class ValidatedReceipt(
-    val merchantName: String,
+    val merchantName: String?,
     val date: Long,
     val totalAmount: Long,
     val taxAmount: Long?,

@@ -16,6 +16,8 @@ import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptByIdUse
 import com.example.smartreceiptsplitter.domain.usecase.split.CalculateSplitUseCase
 import com.example.smartreceiptsplitter.domain.usecase.split.GetReceiptSplitsUseCase
 import com.example.smartreceiptsplitter.domain.usecase.split.SaveReceiptSplitsUseCase
+import com.example.smartreceiptsplitter.domain.usecase.split.isOutdatedFor
+import com.example.smartreceiptsplitter.domain.usecase.split.withAmountsOf
 import com.example.smartreceiptsplitter.ui.navigation.Routes
 import com.example.smartreceiptsplitter.ui.util.formatMoneyInput
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,7 +39,8 @@ data class SplitUiState(
     val hasInvalidInput: Boolean = false,
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isSplitOutdated: Boolean = false //the saved split was made for the other amounts (the receipt was updated after split)
 )
 
 @HiltViewModel
@@ -57,8 +60,10 @@ class SplitViewModel @Inject constructor(
 
     private class Loaded(
         val receipt: Receipt?,
+        val persons: List<Person>,
         val selectedIds: Set<Long>,
-        val inputs: SplitInputs
+        val inputs: SplitInputs,
+        val isOutdated: Boolean = false
     )
 
     init {
@@ -70,21 +75,29 @@ class SplitViewModel @Inject constructor(
                 val saved = getReceiptSplits(receiptId).first()
                 val persons = getPersons().first()
                 when {
-                    receipt == null -> Loaded(null, emptySet(), SplitInputs())
+                    receipt == null -> Loaded(null, persons,emptySet(), SplitInputs())
                     saved.isEmpty() -> Loaded(
                         receipt,
+                        persons,
                         setOf(self.id),
                         SplitInputs(tip = receipt.tipAmount?.takeIf { it > 0 }?.let(::formatMoneyInput).orEmpty())
                     )
                     else -> {
                         val savedIds = saved.map { it.personId }.toSet()
                         val ordered = persons.map { it.id }.filter { it in savedIds }
-                        Loaded(receipt, savedIds, inferInputs(receipt, saved, ordered) { calculateSplit(it) })
+                        if(saved.isOutdatedFor(receipt)) {
+                            // modes - recognizing on the amounts the split was made for, then applied to the new ones - even/proportional split is recalculated rght away, custom amounts have to be corrected
+                            val modes = inferInputs(receipt.withAmountsOf(saved), saved, ordered) { calculateSplit(it)}
+                            val tip = receipt.tipAmount?.takeIf { it > 0 }?.let(::formatMoneyInput).orEmpty()
+                            Loaded(receipt,  persons,savedIds, modes.copy(tip = tip), isOutdated = true)
+                        } else {
+                            Loaded(receipt, persons, savedIds, inferInputs(receipt, saved, ordered) { calculateSplit(it) })
+                        }
                     }
                 }
             }.fold(
                 onSuccess = { loaded ->
-                    update { copy(isLoading = false, receipt = loaded.receipt, selectedIds = loaded.selectedIds, inputs = loaded.inputs) }
+                    update { copy(isLoading = false, receipt = loaded.receipt, persons = loaded.persons, selectedIds = loaded.selectedIds, inputs = loaded.inputs) }
                 },
                 onFailure = { error ->
                     update { copy(isLoading = false, errorMessage = error.message ?: "Could not load the receipt.") }

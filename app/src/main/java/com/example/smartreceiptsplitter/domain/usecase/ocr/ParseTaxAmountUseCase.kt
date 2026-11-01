@@ -1,6 +1,7 @@
 package com.example.smartreceiptsplitter.domain.usecase.ocr
 
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.roundToLong
@@ -10,6 +11,7 @@ class ParseTaxAmountUseCase @Inject constructor() {
     operator fun invoke(text: RecognizedText): Long? {
         val summaries = mutableListOf<Long>()
         val perRate = linkedSetOf<Pair<Double, Long>>() // (rate, tax); a set, so a breakdown printed twice isn't counted twice
+        val withoutRate = linkedSetOf<Long>() // "PDV: 0,50", "PNP 0,30": tax rows that don't print a rate
         var inTaxTable = false
 
         for (row in text.toRows()) {
@@ -30,14 +32,23 @@ class ParseTaxAmountUseCase @Inject constructor() {
                     } else {
                         // A table row without a tax word must fit its rate: an item row like "Mlijeko 2,8% 1L 1,19"
                         // below a "Naziv | Cijena | PDV" header has a percentage too, but its amount is a price
-                        taxFromRow(rate, amounts, requireRateMatch = !isTaxRow)?.let { tax -> perRate += (rate ?: -1.0) to tax }
+                        taxFromRow(rate, amounts, requireRateMatch = !isTaxRow)?.let { tax ->
+                            if (rate != null) perRate += rate to tax else withoutRate += tax
+                        }
                     }
                 }
 
                 else -> inTaxTable = false
             }
         }
-        return summaries.lastOrNull() ?: perRate.takeIf { it.isNotEmpty() }?.sumOf { it.second }
+        return summaries.lastOrNull() ?: combine(perRate.map { it.second }, withoutRate)
+    }
+
+    private fun combine(rated: List<Long>, withoutRate: Set<Long>): Long? {
+        if(rated.isEmpty() && withoutRate.isEmpty()) return null
+        val ratedTotal = rated.sum()
+        val extra = withoutRate.filter { it != ratedTotal && it !in rated }
+        return ratedTotal + extra.sum()
     }
 
     //@param RequireRateMatch is true for rows without a tax word, a single amount can't be checked against the rate, so it isn't taken

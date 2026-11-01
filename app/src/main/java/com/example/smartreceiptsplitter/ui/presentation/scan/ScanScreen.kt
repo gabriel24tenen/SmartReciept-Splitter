@@ -3,9 +3,6 @@ package com.example.smartreceiptsplitter.ui.presentation.scan
 import android.content.ClipData
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
@@ -15,6 +12,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -114,10 +112,12 @@ fun ScanScreen (
     LaunchedEffect(Unit) {
         val alreadyGranted = ContextCompat.checkSelfPermission( context, android.Manifest.permission.CAMERA ) == PackageManager.PERMISSION_GRANTED
 
-        if(alreadyGranted) {
-            viewModel.onAlreadyGranted()
-        } else {
-            permissionLauncher.launch(android.Manifest.permission.CAMERA)
+        when {
+            alreadyGranted -> viewModel.onAlreadyGranted()
+            //only asking the first time, after that a refusal the rationale screeen has its own button
+            // coming from Histroy or the form doesn't open the system dialog again
+            viewModel.permissionStatus.value == CameraPermissionStatus.UNKNOWN ->
+                permissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
@@ -140,6 +140,7 @@ fun ScanScreen (
             CameraPermissionStatus.GRANTED -> {
                 ScanCaptureFlow(
                     captureState = captureState,
+                    onCaptureStarted = viewModel::onCaptureStarted,
                     onPhotoCaptured = viewModel::onPhotoCaptured,
                     onCaptureFailed = viewModel::onCaptureFailed,
                     onConfirm = viewModel::onConfirm,
@@ -191,7 +192,8 @@ fun ScanScreen (
 @Composable
 private fun ScanCaptureFlow(
     captureState: CaptureState,
-    onPhotoCaptured: (Bitmap) -> Unit,
+    onCaptureStarted: () -> Unit,
+    onPhotoCaptured: (CapturedPhoto) -> Unit,
     onCaptureFailed: (String) -> Unit,
     onConfirm: () -> Unit,
     onRetake: () -> Unit,
@@ -200,9 +202,13 @@ private fun ScanCaptureFlow(
     val context = LocalContext.current
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
 
+    val cameraActive = captureState == CaptureState.Idle || captureState == CaptureState.Processing
     Box(modifier = Modifier.fillMaxSize()) {
-        CameraPreview( modifier = Modifier.fillMaxSize(), onImageCaptureReady = { imageCapture = it } )
-
+        if(cameraActive) {
+            CameraPreview(
+                modifier = Modifier.fillMaxSize(),
+                onImageCaptureReady = { imageCapture = it })
+        }
         when(captureState) {
             CaptureState.Idle -> {
                 imageCapture?.let { controller ->
@@ -211,15 +217,15 @@ private fun ScanCaptureFlow(
                         onClick = {
                             controller.takePicture(ContextCompat.getMainExecutor(context), object : ImageCapture.OnImageCapturedCallback() {
                                 override fun onCaptureSuccess(image: ImageProxy) {
-                                    val bitmap = try {
-                                        image.toRotateBitmap()
+                                    val photo = try {
+                                        image.toCapturedPhoto()
                                     } catch (t: Throwable) {
-                                        image.close()
-                                        onCaptureFailed( t.message ?: "Image decoding failed.")
+                                        onCaptureFailed(t.message ?: "Image reading failed.")
                                         return
+                                    } finally {
+                                        image.close()
                                     }
-                                    image.close()
-                                    onPhotoCaptured(bitmap)
+                                    onPhotoCaptured(photo)
                                 }
 
                                 override fun onError(exception: ImageCaptureException) {
@@ -268,7 +274,7 @@ private fun ShutterButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
 
 @Composable
 private fun LoadingOverlay(label: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(12.dp))
@@ -283,7 +289,7 @@ private fun ReviewOverlay(
     onConfirm: () -> Unit,
     onRetake: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding()) {
         Image(
             bitmap = state.correctedBitmap.asImageBitmap(),
             contentDescription = null,
@@ -295,7 +301,8 @@ private fun ReviewOverlay(
                 text = "Receipt's edges are not safely recognized - check if picture is readable.",
                 modifier = Modifier.fillMaxWidth().padding(8.dp),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White
             )
         }
         Row(
@@ -433,14 +440,19 @@ private fun RecognitionFailedOverlay(
 
 @Composable
 private fun ErrorOverlay(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Text (message, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Try again.") }
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(message, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = onRetry) { Text("Try again.") }
+        }
     }
 }
 
@@ -465,16 +477,6 @@ private fun PermissionRationale(
             Text(buttonLabel)
         }
     }
-}
-
-private fun ImageProxy.toRotateBitmap(): Bitmap {
-    val buffer = planes[0].buffer
-    val bytes = ByteArray(buffer.remaining()).also { buffer.get(it) }
-    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: error("Unable to decode captured image.")
-    val rotationDegrees = imageInfo.rotationDegrees
-    if(rotationDegrees == 0) return bitmap
-    val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
-    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 }
 
 private fun android.content.Context.findActivity(): android.app.Activity {

@@ -20,6 +20,8 @@ interface ReceiptDao {
     suspend fun update(receipt: ReceiptEntity)
     @Delete
     suspend fun delete(receipt: ReceiptEntity)
+    @Query("UPDATE receipts SET tipAmount = :tipAmount WHERE id = :id")
+    suspend fun updateTipAmount(id: Long, tipAmount: Long)
     @Query("SELECT DISTINCT currency FROM receipts ORDER BY currency")
     fun getCurrencies(): Flow<List<String>>
     @Query("""

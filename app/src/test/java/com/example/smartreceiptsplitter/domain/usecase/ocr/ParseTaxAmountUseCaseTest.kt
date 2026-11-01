@@ -100,4 +100,16 @@ class ParseTaxAmountUseCaseTest {
     fun realVatRowIsStillReadBelowItemTableWithPdvColumn() {
         assertEquals(6L, parse("Naziv | Cijena | PDV", "Mlijeko 2,8% 1L | 1,19", "UKUPNO | 1,19", "PDV 5% | 1,13 | 0,06"))
     }
+
+    @Test
+    fun taxRowWithoutRateThatRepeatsTheTableIsNotCountedTwice() {
+        assertEquals(50L, parse("PDV 25% | 2,00 | 0,50", "PDV: | 0,50"))
+        assertEquals(80L, parse("PDV 25% | 2,00 | 0,50", "PNP 3% | 10,00 | 0,30", "Porez: | 0,80"))
+    }
+
+    @Test
+    fun differentTaxWithoutRateIsAddedToTheTable() {
+        assertEquals(80L, parse("PDV 25% | 2,00 | 0,50", "PNP | 0,30"))
+        assertEquals(80L, parse("PDV | 0,50", "PNP | 0,30"))
+    }
 }

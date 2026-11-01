@@ -128,4 +128,10 @@ class ParseLineItemsUseCaseTest {
     fun totalLabelWithAmountOnTheRowBelowEndsTheItems() {
         assertEquals(listOf(item("Kava", 150)), parse("Kava | 1,50", "UKUPNO:", "1,50 EUR", "Reklama | 2,00"))
     }
+
+    @Test
+    fun zeroBeforeTheNameIsNotAQuantity() {
+        // used to divide by zero and fail the whole OCR result
+        assertEquals(listOf(item("0 Pivo", 600)), parse("0 Pivo | 6,00", "UKUPNO | 6,00"))
+    }
 }

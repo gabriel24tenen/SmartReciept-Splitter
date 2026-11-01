@@ -30,7 +30,7 @@ class UpdateReceiptUseCaseTest {
 
     private class FakeSplitRepository(private val saved: List<ReceiptSplit>) : ReceiptSplitRepository {
         override fun observeSplits(receiptId: Long): Flow<List<ReceiptSplit>> = flowOf(saved)
-        override suspend fun saveSplits(receiptId: Long, splits: List<ReceiptSplit>) = Unit
+        override suspend fun saveSplits(receiptId: Long, splits: List<ReceiptSplit>, receiptTipAmount: Long?) = Unit
     }
 
     private val existing = Receipt(

@@ -24,10 +24,10 @@ class ParseLineItemsUseCase @Inject constructor() {
 
     operator fun invoke(text: RecognizedText): List<ParsedReceiptItem> {
         val rows = text.toRows()
-        // A totals row has an amount, on the same row or alone on the row below ("UKUPNO:" / "12,50 EUR");  a column header like "Naziv | Kol | Cijena | Ukupno" has none
-        val end = rows.indices.firstOrNull { index ->
-            (findAmounts(rows[index].text).isNotEmpty() || rows.getOrNull(index + 1)?.isAmountOnly() == true)
-        } ?: rows.size
+        // Items end at the first totals row: a total keyword together with an amount, on the same row or alone on the
+        // row below ("UKUPNO:" / "12,50 EUR"). A column header like "Naziv | Kol | Cijena | Ukupno" has no amount,
+        // so it doesn't end the items, and an item row has an amount but no total keyword.
+        val end = rows.indices.firstOrNull { index -> rows.isTotalsRowAt(index) } ?: rows.size
 
         val items = mutableListOf<ParsedReceiptItem>()
         var pendingName: String? = null // a name row without an amount, waiting for its quantity row
@@ -143,6 +143,12 @@ class ParseLineItemsUseCase @Inject constructor() {
         val words = text.toUppercaseWithoutDiacritics().split(Regex("[^A-Z]+")).toSet()
         return NOT_ITEMS.any { it in keywordText } || NOT_ITEM_WORDS.any { it in words }
     }
+
+    private fun List<ReceiptRow>.isTotalsRowAt(index: Int): Boolean {
+        val row = this[index]
+        if (ITEMS_END.none { it in row.keywordText }) return false
+        return findAmounts(row.text).isNotEmpty() || getOrNull(index + 1)?.isAmountOnly() == true
+    }
     private fun ReceiptRow.hasName() = text.hasLetters() && findDates(text).isEmpty()
     private fun String.hasLetters() = count { it.isLetter() } >= 2
     private fun String.toQuantity(): Double? = replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 && it < 10_000 }
@@ -172,7 +178,7 @@ class ParseLineItemsUseCase @Inject constructor() {
         // "2 x", "2,000 x", "1,250 kg x", "3 kom *"
         val TIMES = Regex("""(?<![\d.,])(\d{1,4}(?:[.,]\d{1,3})?)\s*(?:[A-Za-z]{1,3}\.?)?\s*[xX×*]\s*(?=\d)""")
         // "2 Pivo ..." - small whole number, then a word
-        val LEADING_QUANTITY = Regex("""^(\d{1,2})\s+(?=\p{L})""")
+        val LEADING_QUANTITY = Regex("""^([1-9]\d?)\s+(?=\p{L})""")
         // "Kava 2 " right before the first amount
         val QUANTITY_BEFORE_AMOUNT = Regex("""(?<=\s)(\d{1,4}(?:[.,]\d{1,3})?)\s*$""")
         // Article code at the start of the name: "123456 Kruh"

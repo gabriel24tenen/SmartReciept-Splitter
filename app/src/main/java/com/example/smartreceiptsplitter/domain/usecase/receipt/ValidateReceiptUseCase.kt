@@ -49,7 +49,7 @@ class ValidateReceiptUseCase @Inject constructor(){
             tax < 0 -> errors[ReceiptField.TAX] = ReceiptFieldError.NEGATIVE
             tax > ReceiptLimits.MAX_AMOUNT -> errors[ReceiptField.TAX] = ReceiptFieldError.TOO_LARGE
             // compared only with a usable total, otherwise the total's own error is the one to fix first
-            total != null && ReceiptField.TOTAL !in errors && tax > total ->
+            total != null && ReceiptField.TOTAL !in errors && tax >= total ->
                 errors[ReceiptField.TAX] = ReceiptFieldError.TAX_EXCEEDS_TOTAL
         }
 
@@ -70,7 +70,7 @@ class ValidateReceiptUseCase @Inject constructor(){
 
         return ReceiptValidation.Valid(
             ValidatedReceipt(
-                merchantName = merchant ?: "",
+                merchantName = merchant,
                 date = date,
                 totalAmount = total,
                 taxAmount = tax,
