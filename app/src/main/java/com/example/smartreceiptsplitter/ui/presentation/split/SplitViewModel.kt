@@ -60,6 +60,7 @@ class SplitViewModel @Inject constructor(
 
     private class Loaded(
         val receipt: Receipt?,
+        val persons: List<Person>,
         val selectedIds: Set<Long>,
         val inputs: SplitInputs,
         val isOutdated: Boolean = false
@@ -74,9 +75,10 @@ class SplitViewModel @Inject constructor(
                 val saved = getReceiptSplits(receiptId).first()
                 val persons = getPersons().first()
                 when {
-                    receipt == null -> Loaded(null, emptySet(), SplitInputs())
+                    receipt == null -> Loaded(null, persons,emptySet(), SplitInputs())
                     saved.isEmpty() -> Loaded(
                         receipt,
+                        persons,
                         setOf(self.id),
                         SplitInputs(tip = receipt.tipAmount?.takeIf { it > 0 }?.let(::formatMoneyInput).orEmpty())
                     )
@@ -87,15 +89,15 @@ class SplitViewModel @Inject constructor(
                             // modes - recognizing on the amounts the split was made for, then applied to the new ones - even/proportional split is recalculated rght away, custom amounts have to be corrected
                             val modes = inferInputs(receipt.withAmountsOf(saved), saved, ordered) { calculateSplit(it)}
                             val tip = receipt.tipAmount?.takeIf { it > 0 }?.let(::formatMoneyInput).orEmpty()
-                            Loaded(receipt, savedIds, modes.copy(tip = tip), isOutdated = true)
+                            Loaded(receipt,  persons,savedIds, modes.copy(tip = tip), isOutdated = true)
                         } else {
-                            Loaded(receipt, savedIds, inferInputs(receipt, saved, ordered) { calculateSplit(it) })
+                            Loaded(receipt, persons, savedIds, inferInputs(receipt, saved, ordered) { calculateSplit(it) })
                         }
                     }
                 }
             }.fold(
                 onSuccess = { loaded ->
-                    update { copy(isLoading = false, receipt = loaded.receipt, selectedIds = loaded.selectedIds, inputs = loaded.inputs) }
+                    update { copy(isLoading = false, receipt = loaded.receipt, persons = loaded.persons, selectedIds = loaded.selectedIds, inputs = loaded.inputs) }
                 },
                 onFailure = { error ->
                     update { copy(isLoading = false, errorMessage = error.message ?: "Could not load the receipt.") }
