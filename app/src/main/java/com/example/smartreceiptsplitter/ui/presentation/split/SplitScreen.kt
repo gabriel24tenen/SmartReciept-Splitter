@@ -183,7 +183,7 @@ private fun SplitContent(
     ) {
         item(key = "header") {
             Column {
-                Text(receipt.merchantName ?: "Receipt", style = MaterialTheme.typography.headlineSmall)
+                Text(receipt.merchantName?.takeIf { it.isNotBlank() } ?: "Receipt", style = MaterialTheme.typography.headlineSmall)
                 Text("Total: ${formatMoney(receipt.totalAmount, currency)}")
                 receipt.taxAmount?.let { Text("Tax: ${formatMoney(it, currency)}") }
             }

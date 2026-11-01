@@ -80,10 +80,9 @@ class ReceiptFormInputsTest {
     // ---- required
 
     @Test
-    fun emptyFormReportsRequiredMerchantDateAndTotal() {
+    fun emptyFormReportsRequiredDateAndTotal() {
         assertEquals(
             mapOf(
-                ReceiptField.MERCHANT to ReceiptFieldError.REQUIRED,
                 ReceiptField.DATE to ReceiptFieldError.REQUIRED,
                 ReceiptField.TOTAL to ReceiptFieldError.REQUIRED
             ),
@@ -142,7 +141,6 @@ class ReceiptFormInputsTest {
     fun unreadableAndInvalidFieldsAreReportedTogether() {
         assertEquals(
             mapOf(
-                ReceiptField.MERCHANT to ReceiptFieldError.REQUIRED,
                 ReceiptField.DATE to ReceiptFieldError.DATE_IN_FUTURE,
                 ReceiptField.TOTAL to ReceiptFieldError.INVALID_FORMAT,
                 ReceiptField.CURRENCY to ReceiptFieldError.INVALID_FORMAT

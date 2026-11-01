@@ -16,6 +16,7 @@ import org.junit.Test
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
+import org.junit.Assert.assertNull
 
 class ValidateReceiptUseCaseTest {
     private val validate = ValidateReceiptUseCase()
@@ -72,8 +73,8 @@ class ValidateReceiptUseCaseTest {
 
     @Test
     fun blankMerchantIsAcceptedAndBecomesNull() {
-        assertEquals(ReceiptFieldError.REQUIRED, error(draft(merchantName = ""), ReceiptField.MERCHANT))
-        assertEquals(ReceiptFieldError.REQUIRED, error(draft(merchantName = "   "), ReceiptField.MERCHANT))
+        assertNull(valid(draft(merchantName = "")).merchantName)
+        assertNull(valid(draft(merchantName = "   ")).merchantName)
     }
 
     @Test
@@ -229,7 +230,7 @@ class ValidateReceiptUseCaseTest {
                 ReceiptField.TOTAL to ReceiptFieldError.REQUIRED,
                 ReceiptField.CURRENCY to ReceiptFieldError.REQUIRED
             ),
-            errors(ReceiptDraft(currency = "EUR"))
+            errors(ReceiptDraft(currency = ""))
         )
     }
 

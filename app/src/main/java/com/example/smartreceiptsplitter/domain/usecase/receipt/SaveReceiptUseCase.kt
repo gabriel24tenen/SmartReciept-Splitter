@@ -14,7 +14,7 @@ class SaveReceiptUseCase @Inject constructor(
         imagePath: String? = null
     ): Long = repository.addReceipt(
         Receipt(
-            merchantName = receipt.merchantName,
+            merchantName = receipt.merchantName?.takeIf { it.isNotBlank() },
             date = receipt.date,
             totalAmount = receipt.totalAmount,
             taxAmount = receipt.taxAmount,

@@ -21,7 +21,7 @@ class UpdateReceiptUseCase @Inject constructor(
 
         receipts.updateReceipt(
             existing.copy(
-                merchantName = edited.merchantName,
+                merchantName = edited.merchantName?.takeIf { it.isNotBlank() },
                 date = edited.date,
                 totalAmount = edited.totalAmount,
                 taxAmount = edited.taxAmount,
