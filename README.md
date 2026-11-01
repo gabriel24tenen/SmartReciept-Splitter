@@ -1,4 +1,4 @@
-# SmartReceipet-Splitter
+# Smart Receipt-Splitter
 
 Android app that scans receipts with on-device OCR, extracts totals, dates, items and VAT, and splits costs — including tax and tips — among multiple people. All OCR processing happens entirely on-device; receipt images are never uploaded to a server.
 
@@ -56,14 +56,15 @@ Open the project in Android Studio and let Gradle sync. No API keys are required
 
 ## Git Strategy
 
-| Branch | Purpose |
-|---|---|
-| `master` | Stable releases |
-| `dev` | Integration branch |
-| `feature/*` | New functionality |
-| `bugfix/*` | Bug fixes |
-| `hotfix/*` | Urgent fixes on `master` |
-| `release/*` | Release preparation |
+| Branch       | Purpose                  |
+|--------------|--------------------------|
+| `master`     | Stable releases          |
+| `dev`        | Integration branch       |
+| `feature/*`  | New functionality        |
+| `bugfix/*`   | Bug fixes                |
+| `hotfix/*`   | Urgent fixes on `master` |
+| `release/*`  | Release preparation      |
+| `refactor/*` | Refactoring code         |
 
 ## Roadmap
 
