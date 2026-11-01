@@ -26,6 +26,7 @@ class ParseTotalAmountUseCase @Inject constructor() {
     private fun candidateAt(rows: List<ReceiptRow>, index: Int): Candidate? {
         val label = rows[index].keywordText
         if(EXCLUDED.any { it in label }) return null
+        if(TAX_WORDS.any { it in label } && !rows[index].includesTax()) return null
         val priority = PRIORITIES.firstOrNull { (keywords, _) -> keywords.any { it in label } }?.second ?: return null
 
         val amount = rows[index].totalAmount()
@@ -34,6 +35,11 @@ class ParseTotalAmountUseCase @Inject constructor() {
                 ?.totalAmount()
             ?:return null
         return Candidate(cents = amount, priority = priority)
+    }
+
+    private fun ReceiptRow.includesTax(): Boolean {
+        val words = text.toUppercaseWithoutDiacritics().split(Regex("[^A-Z]+")).toSet()
+        return words.any { it in INCLUDING_WORDS || it.startsWith("UKLJUC")}
     }
 
     //Total is the largest in the row
@@ -57,8 +63,7 @@ class ParseTotalAmountUseCase @Inject constructor() {
         val PRIORITIES = listOf(AMOUNT_TO_PAY to 3, TOTAL to 2, CARD_PAYMENT to 1)
 
         val EXCLUDED = listOf(
-            "SUBTOTAL", "MEDUZBROJ", "MEDJUZBROJ", "ZWISCHENSUMME", "SUBTOTALE",
-            "PDV", "VAT", "TAX", "POREZ", "MWST", "IVA", "OSNOVICA", "NETO", "NETTO",
+            "SUBTOTAL", "MEDUZBROJ", "MEDJUZBROJ", "ZWISCHENSUMME", "SUBTOTALE", "OSNOVICA", "NETO", "NETTO",
             "POPUST", "DISCOUNT", "RABAT", "USTEDA", "SAVING",
             "POVRAT", "OSTATAK", "CHANGE", "WECHSELGELD", "RESTO",
             "KOLICIN", "ARTIK", "STAVK", "ITEMS"
