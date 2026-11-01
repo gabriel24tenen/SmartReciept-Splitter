@@ -1,14 +1,15 @@
-package com.example.smartreceiptsplitter.ui.presentation.receiptform
+package com.example.smartreceiptsplitter.ui.presentation.receiptForm
+
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptField
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptFieldError
+import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
 import com.example.smartreceiptsplitter.domain.model.ReceiptValidation
 import com.example.smartreceiptsplitter.domain.model.ValidatedReceipt
 import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUseCase
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
-import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.validate
-import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.toFormInputs
-import org.junit.Assert.assertEquals
+import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.validate
+import org.junit.Assert
 import org.junit.Test
 import java.time.Clock
 import java.time.LocalDate
@@ -43,7 +44,7 @@ class ReceiptFormInputsTest {
     @Test
     fun typedTextIsConvertedToCentsAndTimestamp() {
         val result = validate(inputs(tip = "1", currency = "eur"))
-        assertEquals(
+        Assert.assertEquals(
             ReceiptValidation.Valid(
                 ValidatedReceipt(
                     "Konzum",
@@ -61,27 +62,27 @@ class ReceiptFormInputsTest {
     @Test
     fun blankTaxAndTipMeanNone() {
         val receipt = (validate(inputs(tax = "", tip = "  ")) as ReceiptValidation.Valid).receipt
-        assertEquals(null, receipt.taxAmount)
-        assertEquals(null, receipt.tipAmount)
+        Assert.assertEquals(null, receipt.taxAmount)
+        Assert.assertEquals(null, receipt.tipAmount)
     }
 
     @Test
     fun amountsAcceptDotAndComma() {
         val receipt = (validate(inputs(total = "12.5", tax = "0,25")) as ReceiptValidation.Valid).receipt
-        assertEquals(1250L, receipt.totalAmount)
-        assertEquals(25L, receipt.taxAmount)
+        Assert.assertEquals(1250L, receipt.totalAmount)
+        Assert.assertEquals(25L, receipt.taxAmount)
     }
 
     @Test
     fun defaultCurrencyIsEur() {
-        assertEquals("EUR", ReceiptFormInputs().currency)
+        Assert.assertEquals("EUR", ReceiptFormInputs().currency)
     }
 
     // ---- required
 
     @Test
     fun emptyFormReportsRequiredDateAndTotal() {
-        assertEquals(
+        Assert.assertEquals(
             mapOf(
                 ReceiptField.DATE to ReceiptFieldError.REQUIRED,
                 ReceiptField.TOTAL to ReceiptFieldError.REQUIRED
@@ -94,58 +95,94 @@ class ReceiptFormInputsTest {
 
     @Test
     fun unreadableAmountIsInvalidFormatNotRequired() {
-        assertEquals(ReceiptFieldError.INVALID_FORMAT, errors(inputs(total = "12,5x"))[ReceiptField.TOTAL])
+        Assert.assertEquals(
+            ReceiptFieldError.INVALID_FORMAT,
+            errors(inputs(total = "12,5x"))[ReceiptField.TOTAL]
+        )
     }
 
     @Test
     fun amountsWithMoreThanTwoDecimalsAreInvalid() {
-        assertEquals(ReceiptFieldError.INVALID_FORMAT, errors(inputs(total = "1.234"))[ReceiptField.TOTAL])
+        Assert.assertEquals(
+            ReceiptFieldError.INVALID_FORMAT,
+            errors(inputs(total = "1.234"))[ReceiptField.TOTAL]
+        )
     }
 
     @Test
     fun negativeAmountTextIsInvalid() {
-        assertEquals(ReceiptFieldError.INVALID_FORMAT, errors(inputs(tip = "-1"))[ReceiptField.TIP])
+        Assert.assertEquals(
+            ReceiptFieldError.INVALID_FORMAT,
+            errors(inputs(tip = "-1"))[ReceiptField.TIP]
+        )
     }
 
     @Test
     fun unreadableTaxOrTipBlocksSavingEvenThoughItWouldOtherwiseBeNone() {
-        assertEquals(mapOf(ReceiptField.TAX to ReceiptFieldError.INVALID_FORMAT), errors(inputs(tax = "abc")))
-        assertEquals(mapOf(ReceiptField.TIP to ReceiptFieldError.INVALID_FORMAT), errors(inputs(tip = "1,2,3")))
+        Assert.assertEquals(
+            mapOf(ReceiptField.TAX to ReceiptFieldError.INVALID_FORMAT),
+            errors(inputs(tax = "abc"))
+        )
+        Assert.assertEquals(
+            mapOf(ReceiptField.TIP to ReceiptFieldError.INVALID_FORMAT),
+            errors(inputs(tip = "1,2,3"))
+        )
     }
 
     @Test
     fun invalidDatesAreRejected() {
         for (text in listOf("31.02.2026", "20.13.2026", "20.10.26", "abc", "2026.10.20")) {
-            assertEquals(text, ReceiptFieldError.INVALID_FORMAT, errors(inputs(date = text))[ReceiptField.DATE])
+            Assert.assertEquals(
+                text,
+                ReceiptFieldError.INVALID_FORMAT,
+                errors(inputs(date = text))[ReceiptField.DATE]
+            )
         }
     }
 
     @Test
     fun futureDateIsReportedForAReadableDate() {
-        assertEquals(ReceiptFieldError.DATE_IN_FUTURE, errors(inputs(date = "21.10.2026"))[ReceiptField.DATE])
+        Assert.assertEquals(
+            ReceiptFieldError.DATE_IN_FUTURE,
+            errors(inputs(date = "21.10.2026"))[ReceiptField.DATE]
+        )
     }
 
     // ---- rules between fields
 
     @Test
     fun taxAboveTotalIsReported() {
-        assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, errors(inputs(total = "10", tax = "10,01"))[ReceiptField.TAX])
+        Assert.assertEquals(
+            ReceiptFieldError.TAX_EXCEEDS_TOTAL,
+            errors(inputs(total = "10", tax = "10,01"))[ReceiptField.TAX]
+        )
     }
 
     @Test
     fun unreadableTotalDoesNotCauseAFalseTaxError() {
-        assertEquals(mapOf(ReceiptField.TOTAL to ReceiptFieldError.INVALID_FORMAT), errors(inputs(total = "abc", tax = "5")))
+        Assert.assertEquals(
+            mapOf(ReceiptField.TOTAL to ReceiptFieldError.INVALID_FORMAT),
+            errors(inputs(total = "abc", tax = "5"))
+        )
     }
 
     @Test
     fun unreadableAndInvalidFieldsAreReportedTogether() {
-        assertEquals(
+        Assert.assertEquals(
             mapOf(
                 ReceiptField.DATE to ReceiptFieldError.DATE_IN_FUTURE,
                 ReceiptField.TOTAL to ReceiptFieldError.INVALID_FORMAT,
                 ReceiptField.CURRENCY to ReceiptFieldError.INVALID_FORMAT
             ),
-            errors(inputs(merchantName = " ", date = "21.10.2026", total = "abc", tax = "", currency = "XX"))
+            errors(
+                inputs(
+                    merchantName = " ",
+                    date = "21.10.2026",
+                    total = "abc",
+                    tax = "",
+                    currency = "XX"
+                )
+            )
         )
     }
     // ---- from a typed draft (OCR result)
@@ -154,9 +191,27 @@ class ReceiptFormInputsTest {
     fun draftBecomesFormTextAndValidatesBackToTheSameValues() {
         val draft = ReceiptDraft("Konzum", startOfDay(2026, 10, 19), 1250, 250, 100, "EUR")
         val text = draft.toFormInputs(zone)
-        assertEquals(ReceiptFormInputs("Konzum", "19.10.2026", "12.50", "2.50", "1.00", "EUR"), text)
-        assertEquals(
-            ReceiptValidation.Valid(ValidatedReceipt("Konzum", startOfDay(2026, 10, 19), 1250, 250, 100, "EUR")),
+        Assert.assertEquals(
+            ReceiptFormInputs(
+                "Konzum",
+                "19.10.2026",
+                "12.50",
+                "2.50",
+                "1.00",
+                "EUR"
+            ), text
+        )
+        Assert.assertEquals(
+            ReceiptValidation.Valid(
+                ValidatedReceipt(
+                    "Konzum",
+                    startOfDay(2026, 10, 19),
+                    1250,
+                    250,
+                    100,
+                    "EUR"
+                )
+            ),
             validate(text)
         )
     }
@@ -164,16 +219,28 @@ class ReceiptFormInputsTest {
     @Test
     fun fieldsOcrDidNotFindStayBlankAndMustBeFilledIn() {
         val text = ReceiptDraft(merchantName = "Konzum", totalAmount = 1250, currency = "EUR").toFormInputs(zone)
-        assertEquals(ReceiptFormInputs("Konzum", "", "12.50", "", "", ReceiptFormInputs.DEFAULT_CURRENCY), text)
-        assertEquals(mapOf(ReceiptField.DATE to ReceiptFieldError.REQUIRED), errors(text))
+        Assert.assertEquals(
+            ReceiptFormInputs(
+                "Konzum",
+                "",
+                "12.50",
+                "",
+                "",
+                ReceiptFormInputs.Companion.DEFAULT_CURRENCY
+            ), text
+        )
+        Assert.assertEquals(mapOf(ReceiptField.DATE to ReceiptFieldError.REQUIRED), errors(text))
     }
 
     @Test
     fun wrongOcrValueCanBeCorrectedInTheForm() {
         // OCR read a tax that is higher than the total
         val text = ReceiptDraft("Konzum", startOfDay(2026, 10, 19), 1000, 5000, null, "EUR").toFormInputs(zone)
-        assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, errors(text)[ReceiptField.TAX])
+        Assert.assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, errors(text)[ReceiptField.TAX])
         val corrected = text.copy(total = "60")
-        assertEquals(6000L, (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount)
+        Assert.assertEquals(
+            6000L,
+            (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount
+        )
     }
 }
