@@ -142,8 +142,9 @@ class ValidateReceiptUseCaseTest {
     }
 
     @Test
-    fun taxEqualToTotalIsAcceptedButAboveIsNot() {
-        valid(draft(totalAmount = 1250, taxAmount = 1250))
+    fun taxMustBeLowerThanTotal() {
+        valid(draft(totalAmount = 1250, taxAmount = 1249))
+        assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, error(draft(totalAmount = 1250, taxAmount = 1250), ReceiptField.TAX))
         assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, error(draft(totalAmount = 1250, taxAmount = 1251), ReceiptField.TAX))
     }
 

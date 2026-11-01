@@ -173,7 +173,7 @@ class ReceiptFormInputsTest {
         // OCR read a tax that is higher than the total
         val text = ReceiptDraft("Konzum", startOfDay(2026, 10, 19), 1000, 5000, null, "EUR").toFormInputs(zone)
         assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, errors(text)[ReceiptField.TAX])
-        val corrected = text.copy(total = "50")
-        assertEquals(5000L, (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount)
+        val corrected = text.copy(total = "60")
+        assertEquals(6000L, (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount)
     }
 }
