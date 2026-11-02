@@ -14,6 +14,7 @@ interface ReceiptSplitDao {
     fun getForReceipt(receiptId: Long): Flow<List<ReceiptSplitEntity>>
     @Query("SELECT * FROM receipt_splits WHERE receiptId = :receiptId")
     suspend fun getForReceiptOnce(receiptId: Long): List<ReceiptSplitEntity>
+    // not used yet: debt overview per person - F17
     @Query("SELECT * FROM receipt_splits WHERE personId = :personId")
     fun getForPerson(personId: Long): Flow<List<ReceiptSplitEntity>>
     @Insert

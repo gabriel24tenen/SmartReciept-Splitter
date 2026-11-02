@@ -11,8 +11,6 @@ import javax.inject.Inject
 class ReceiptRepositoryImpl @Inject constructor(
     private val receiptDao : ReceiptDao
 ) : ReceiptRepository {
-    override fun getAllReceipts(): Flow<List<Receipt>> =
-        receiptDao.getAll().map { list -> list.map {it.toDomain()} }
 
     override suspend fun getReceiptById(id: Long): Receipt? =
         receiptDao.getById(id)?.toDomain()

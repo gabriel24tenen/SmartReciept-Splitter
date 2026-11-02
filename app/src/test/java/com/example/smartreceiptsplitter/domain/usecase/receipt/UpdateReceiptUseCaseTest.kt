@@ -19,7 +19,7 @@ class UpdateReceiptUseCaseTest {
     private class FakeReceiptRepository : ReceiptRepository {
         val updated = mutableListOf<Receipt>()
         val deleted = mutableListOf<Receipt>()
-        override fun getAllReceipts(): Flow<List<Receipt>> = flowOf(emptyList())
+        // override fun getAllReceipts(): Flow<List<Receipt>> = flowOf(emptyList())
         override fun getReceipts(dateFrom: Long?, dateToExclusive: Long?, currency: String?): Flow<List<Receipt>> = flowOf(emptyList())
         override fun getCurrencies(): Flow<List<String>> = flowOf(emptyList())
         override suspend fun getReceiptById(id: Long): Receipt? = null
