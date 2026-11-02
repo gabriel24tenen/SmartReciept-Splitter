@@ -2,7 +2,6 @@ package com.example.smartreceiptsplitter.data.local.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
 import com.example.smartreceiptsplitter.data.local.dao.CategoryDao
 import com.example.smartreceiptsplitter.data.local.dao.PersonDao
 import com.example.smartreceiptsplitter.data.local.dao.ReceiptDao
@@ -33,7 +32,7 @@ import com.example.smartreceiptsplitter.data.local.entity.ReceiptSplitEntity
     version = 2,
     exportSchema = true
 )
-@TypeConverters(Converters::class)
+
 abstract class AppDatabase : RoomDatabase() {
     abstract fun receiptDao(): ReceiptDao
     abstract fun receiptItemDao(): ReceiptItemDao
