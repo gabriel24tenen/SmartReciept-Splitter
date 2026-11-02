@@ -73,8 +73,8 @@ import com.example.smartreceiptsplitter.domain.model.ReceiptExtraction
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
 import com.example.smartreceiptsplitter.ui.util.formatMoney
+import com.example.smartreceiptsplitter.ui.util.formatQuantity
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -546,9 +546,9 @@ private fun RawTextSection(fullText: String, expanded: Boolean, onToggle: () -> 
         }
     }
 }
-
+/* replaced with formatQuantity in @MoneyFormat.kt
 private fun formatQuantity(quantity: Double): String =
     if(quantity % 1.0 == 0.0) quantity.toLong().toString()
     else BigDecimal.valueOf(quantity).stripTrailingZeros().toPlainString().replace('.', ',')
-
+*/
 private val REVIEW_DATE_FORMAT= DateTimeFormatter.ofPattern("dd.MM.yyyy")

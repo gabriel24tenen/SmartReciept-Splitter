@@ -33,6 +33,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptField
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptFieldError
 import com.example.smartreceiptsplitter.domain.model.ReceiptLimits
+import com.example.smartreceiptsplitter.ui.util.EXAMPLE_AMOUNT
 import com.example.smartreceiptsplitter.ui.util.formatMoneyInput
 
 @Composable
@@ -183,7 +184,7 @@ private fun ReceiptFieldError.message(field: ReceiptField): String = when (this)
     ReceiptFieldError.INVALID_FORMAT -> when (field) {
         ReceiptField.DATE -> "Use the format dd.MM.yyyy"
         ReceiptField.CURRENCY -> "Use a 3-letter currency code, e.g. EUR"
-        else -> "Enter an amount with at most 2 decimals, e.g. 12.50"
+        else -> "Enter an amount with at most 2 decimals, e.g. ${formatMoneyInput(EXAMPLE_AMOUNT)}"
     }
     ReceiptFieldError.NOT_POSITIVE -> "Must be greater than 0"
     ReceiptFieldError.NEGATIVE -> "Can't be negative"
