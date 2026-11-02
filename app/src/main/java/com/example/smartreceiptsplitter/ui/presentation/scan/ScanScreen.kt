@@ -154,15 +154,15 @@ fun ScanScreen (
             CameraPermissionStatus.DENIED -> {
                 PermissionRationale(
                     message = "The camera is required to scan receipts. Grant access so you can take photos of receipts.",
-                    buttonLabel = "Allow camera access.",
+                    buttonLabel = "Allow camera access",
                     onButtonClick = { permissionLauncher.launch(android.Manifest.permission.CAMERA)}
                 )
             }
 
             CameraPermissionStatus.PERMANENTLY_DENIED -> {
                 PermissionRationale(
-                    message = "Access to the camera is permanently denied. Enable it in the application settings so that it can scan accounts.",
-                    buttonLabel = "Open settings.",
+                    message = "Access to the camera is permanently denied. Enable it in the application settings so that it can scan receipts.",
+                    buttonLabel = "Open settings",
                     onButtonClick = {
                         val intent = Intent(
                             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -309,8 +309,8 @@ private fun ReviewOverlay(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            OutlinedButton(onClick = onRetake) { Text("Repeat shoot.") }
-            Button(onClick = onConfirm) { Text("Accept.") }
+            OutlinedButton(onClick = onRetake) { Text("Retake") }
+            Button(onClick = onConfirm) { Text("Use photo") }
         }
     }
 }
@@ -340,7 +340,7 @@ private fun ExtractionReviewOverlay(
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
-            Text("Check scanned receipt", style = MaterialTheme.typography.titleLarge)
+            Text("Scan result", style = MaterialTheme.typography.titleLarge)
             Text(
                 text = "Fields that couldn't be read are left empty. You can correct everything on the next screen.",
                 style = MaterialTheme.typography.bodySmall,
@@ -451,7 +451,7 @@ private fun ErrorOverlay(message: String, onRetry: () -> Unit) {
         ) {
             Text(message, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onRetry) { Text("Try again.") }
+            Button(onClick = onRetry) { Text("Try again") }
         }
     }
 }
