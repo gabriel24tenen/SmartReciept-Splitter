@@ -14,7 +14,7 @@ class GetReceiptsUseCaseTest {
 
     private class FakeReceiptRepository(private val stored: List<Receipt>) : ReceiptRepository {
         var lastArgs: Triple<Long?, Long?, String?>? = null
-        override fun getAllReceipts(): Flow<List<Receipt>> = flowOf(stored)
+        // override fun getAllReceipts(): Flow<List<Receipt>> = flowOf(stored)
         override fun getReceipts(dateFrom: Long?, dateToExclusive: Long?, currency: String?): Flow<List<Receipt>> {
             lastArgs = Triple(dateFrom, dateToExclusive, currency)
             return flowOf(stored)

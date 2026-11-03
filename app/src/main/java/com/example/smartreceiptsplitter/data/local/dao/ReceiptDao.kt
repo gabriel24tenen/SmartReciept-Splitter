@@ -10,8 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReceiptDao {
-    @Query("SELECT * FROM receipts ORDER BY date DESC")
-    fun getAll(): Flow<List<ReceiptEntity>>
+    // removed for Reafactor 8
+    /* @Query("SELECT * FROM receipts ORDER BY date DESC")
+    fun getAll(): Flow<List<ReceiptEntity>> */
     @Query("SELECT * FROM receipts WHERE id = :id")
     suspend fun getById(id: Long): ReceiptEntity?
     @Insert

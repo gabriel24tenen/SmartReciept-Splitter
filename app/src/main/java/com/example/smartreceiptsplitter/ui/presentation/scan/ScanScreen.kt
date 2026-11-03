@@ -73,8 +73,8 @@ import com.example.smartreceiptsplitter.domain.model.ReceiptExtraction
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
 import com.example.smartreceiptsplitter.ui.util.formatMoney
+import com.example.smartreceiptsplitter.ui.util.formatQuantity
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -129,7 +129,7 @@ fun ScanScreen (
             is CaptureState.Error -> viewModel.onRetake()
 
             CaptureState.Processing,
-            CaptureState.Saving,
+            //CaptureState.Saving, -- removed after refactoring
             is CaptureState.Recognizing,
             CaptureState.Idle -> Unit
         }
@@ -154,15 +154,15 @@ fun ScanScreen (
             CameraPermissionStatus.DENIED -> {
                 PermissionRationale(
                     message = "The camera is required to scan receipts. Grant access so you can take photos of receipts.",
-                    buttonLabel = "Allow camera access.",
+                    buttonLabel = "Allow camera access",
                     onButtonClick = { permissionLauncher.launch(android.Manifest.permission.CAMERA)}
                 )
             }
 
             CameraPermissionStatus.PERMANENTLY_DENIED -> {
                 PermissionRationale(
-                    message = "Access to the camera is permanently denied. Enable it in the application settings so that it can scan accounts.",
-                    buttonLabel = "Open settings.",
+                    message = "Access to the camera is permanently denied. Enable it in the application settings so that it can scan receipts.",
+                    buttonLabel = "Open settings",
                     onButtonClick = {
                         val intent = Intent(
                             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -241,8 +241,6 @@ private fun ScanCaptureFlow(
 
             is CaptureState.Review -> ReviewOverlay( state = captureState, onConfirm = onConfirm, onRetake = onRetake )
 
-            CaptureState.Saving -> LoadingOverlay("Saving...")
-
             is CaptureState.Recognizing -> LoadingOverlay("Reading receipt text...")
 
             is CaptureState.Recognized -> ExtractionReviewOverlay(
@@ -291,7 +289,7 @@ private fun ReviewOverlay(
 ) {
     Column(modifier = Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding()) {
         Image(
-            bitmap = state.correctedBitmap.asImageBitmap(),
+            bitmap = state.preview.asImageBitmap(),
             contentDescription = null,
             modifier = Modifier.fillMaxWidth().weight(1f),
             contentScale = ContentScale.Fit
@@ -309,23 +307,12 @@ private fun ReviewOverlay(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            OutlinedButton(onClick = onRetake) { Text("Repeat shoot.") }
-            Button(onClick = onConfirm) { Text("Accept.") }
+            OutlinedButton(onClick = onRetake) { Text("Retake") }
+            Button(onClick = onConfirm) { Text("Use photo") }
         }
     }
 }
-/* NOT NEEDED ANYMORE AFTER TASK 2.1
-@Composable
-private fun SavedOverlay(onScanAnother: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Receipt saved.", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onScanAnother) { Text("Scan new receipt") }
-        }
-    }
-}
-*/
+
 
 //new, instead of RecognizedTextOverlay
 @Composable
@@ -340,7 +327,7 @@ private fun ExtractionReviewOverlay(
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
-            Text("Check scanned receipt", style = MaterialTheme.typography.titleLarge)
+            Text("Scan result", style = MaterialTheme.typography.titleLarge)
             Text(
                 text = "Fields that couldn't be read are left empty. You can correct everything on the next screen.",
                 style = MaterialTheme.typography.bodySmall,
@@ -451,7 +438,7 @@ private fun ErrorOverlay(message: String, onRetry: () -> Unit) {
         ) {
             Text(message, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onRetry) { Text("Try again.") }
+            Button(onClick = onRetry) { Text("Try again") }
         }
     }
 }
@@ -546,9 +533,5 @@ private fun RawTextSection(fullText: String, expanded: Boolean, onToggle: () -> 
         }
     }
 }
-
-private fun formatQuantity(quantity: Double): String =
-    if(quantity % 1.0 == 0.0) quantity.toLong().toString()
-    else BigDecimal.valueOf(quantity).stripTrailingZeros().toPlainString().replace('.', ',')
 
 private val REVIEW_DATE_FORMAT= DateTimeFormatter.ofPattern("dd.MM.yyyy")

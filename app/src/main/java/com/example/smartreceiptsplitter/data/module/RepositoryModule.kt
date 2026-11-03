@@ -1,11 +1,15 @@
 package com.example.smartreceiptsplitter.data.module
 
+import com.example.smartreceiptsplitter.data.image.BitmapReceiptImageProcessor
+import com.example.smartreceiptsplitter.data.image.FileReceiptImageStorage
 import com.example.smartreceiptsplitter.data.ocr.MLKitTextRecognitionRepository
 import com.example.smartreceiptsplitter.data.repository.PersonRepositoryImpl
 import com.example.smartreceiptsplitter.data.repository.ReceiptRepositoryImpl
 import com.example.smartreceiptsplitter.data.repository.ReceiptSplitRepositoryImpl
 import com.example.smartreceiptsplitter.domain.repository.TextRecognitionRepository
 import com.example.smartreceiptsplitter.domain.repository.PersonRepository
+import com.example.smartreceiptsplitter.domain.repository.ReceiptImageProcessor
+import com.example.smartreceiptsplitter.domain.repository.ReceiptImageStorage
 import com.example.smartreceiptsplitter.domain.repository.ReceiptRepository
 import com.example.smartreceiptsplitter.domain.repository.ReceiptSplitRepository
 import dagger.Binds
@@ -41,6 +45,17 @@ abstract class RepositoryModule {
     abstract fun bindTextRecognitionRepository(
         impl: MLKitTextRecognitionRepository
     ): TextRecognitionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReceiptImageStorage(
+        impl: FileReceiptImageStorage
+    ): ReceiptImageStorage
+
+    @Binds
+    abstract fun bindReceiptImageProcessor(
+        impl: BitmapReceiptImageProcessor
+    ): ReceiptImageProcessor
 
     //TODO: other repositories such as CategoryRepository also should be bind here
 }

@@ -24,7 +24,7 @@ object DatabaseModule {
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "smart_receipt.db")
     //TODO: replace with real Migration objects before the first release
-    //destructive fallback is only safee while schema version stays at 1
+    //until then any schema change wipes all receipts
             .fallbackToDestructiveMigration()
             .build()
 

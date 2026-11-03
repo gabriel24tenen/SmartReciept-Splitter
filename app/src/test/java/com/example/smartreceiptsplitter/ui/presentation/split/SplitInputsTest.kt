@@ -13,9 +13,21 @@ import com.example.smartreceiptsplitter.ui.util.formatMoneyInput
 import com.example.smartreceiptsplitter.ui.util.parseMoney
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
 class SplitInputsTest {
+
+    // Expected texts use a dot as the decimal separator, so the tests don't depend on the machine's locale
+    private val defaultLocale = Locale.getDefault()
+
+    @Before
+    fun useUsLocale() = Locale.setDefault(Locale.US)
+
+    @After
+    fun restoreLocale() = Locale.setDefault(defaultLocale)
 
     private val calculateUseCase = CalculateSplitUseCase()
     private val calculate: (SplitRequest) -> SplitCalculation = { calculateUseCase(it) }

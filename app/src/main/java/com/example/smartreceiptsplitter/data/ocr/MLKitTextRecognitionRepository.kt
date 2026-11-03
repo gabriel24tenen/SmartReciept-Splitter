@@ -1,7 +1,8 @@
 package com.example.smartreceiptsplitter.data.ocr
 
-import android.graphics.Bitmap
+import android.content.Context
 import android.graphics.Rect
+import android.net.Uri
 import com.example.smartreceiptsplitter.domain.repository.TextRecognitionRepository
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import com.example.smartreceiptsplitter.domain.model.RecognizedTextBlock
@@ -11,7 +12,11 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -23,10 +28,12 @@ import kotlin.coroutines.resumeWithException
  * nothing is downloaded at runtime and recognition runs fully on-device.
  */
 @Singleton
-class MLKitTextRecognitionRepository @Inject constructor() : TextRecognitionRepository {
+class MLKitTextRecognitionRepository @Inject constructor(
+    @ApplicationContext private val context: Context
+) : TextRecognitionRepository {
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) //one client for the whole app lifetime, ML Kit runs on its own background executor
-    override suspend fun recognize(bitmap: Bitmap): RecognizedText {
-        val image = InputImage.fromBitmap(bitmap, 0)
+    override suspend fun recognize(imagePath: String): RecognizedText {
+        val image = withContext(Dispatchers.IO) { InputImage.fromFilePath(context, Uri.fromFile(File(imagePath))) }
         val text = suspendCancellableCoroutine { continuation ->
             recognizer.process(image).addOnSuccessListener { result -> continuation.resume(result)}.addOnFailureListener { error -> continuation.resumeWithException(error) }
         }

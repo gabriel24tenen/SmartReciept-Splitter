@@ -50,7 +50,9 @@ import com.example.smartreceiptsplitter.data.local.enums.SplitPart
 import com.example.smartreceiptsplitter.domain.model.Receipt
 import com.example.smartreceiptsplitter.domain.model.SplitCalculation
 import com.example.smartreceiptsplitter.domain.model.SplitError
+import com.example.smartreceiptsplitter.ui.util.EXAMPLE_AMOUNT
 import com.example.smartreceiptsplitter.ui.util.formatMoney
+import com.example.smartreceiptsplitter.ui.util.formatMoneyInput
 import com.example.smartreceiptsplitter.ui.util.parseMoney
 
 @Composable
@@ -272,7 +274,7 @@ private fun SplitContent(
         item(key = "preview-title") { SectionTitle("Split preview") }
         if(state.hasInvalidInput) {
             item(key = "preview-invalid") {
-                Text("Enter amounts like 12.50 (at most two decimals).", color = MaterialTheme.colorScheme.error)
+                Text("Enter amounts at most two decimals, e.g. ${formatMoneyInput(EXAMPLE_AMOUNT)}", color = MaterialTheme.colorScheme.error)
             }
         }
         when (val calculation = state.calculation) {

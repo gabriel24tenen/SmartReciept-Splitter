@@ -1,20 +1,30 @@
-package com.example.smartreceiptsplitter.ui.presentation.receiptform
+package com.example.smartreceiptsplitter.ui.presentation.receiptsForm
+
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptField
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptFieldError
 import com.example.smartreceiptsplitter.domain.model.ReceiptValidation
 import com.example.smartreceiptsplitter.domain.model.ValidatedReceipt
 import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUseCase
-import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
-import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.validate
 import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
-import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.toFormInputs
 import org.junit.Assert.assertEquals
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 
 class ReceiptFormInputsTest {
+
+    // Expected texts use a dot as the decimal separator, so the tests don't depend on the machine's locale
+    private val defaultLocale = Locale.getDefault()
+
+    @Before
+    fun useUsLocale() = Locale.setDefault(Locale.US)
+
+    @After
+    fun restoreLocale() = Locale.setDefault(defaultLocale)
     private val validator = ValidateReceiptUseCase()
 
     // "today" is 20.10.2026 at noon in Zagreb

@@ -1,7 +1,6 @@
 package com.example.smartreceiptsplitter.domain.usecase.ocr
 
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
-import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.roundToLong
@@ -71,7 +70,7 @@ class ParseTaxAmountUseCase @Inject constructor() {
                 (words.any { it in INCLUDING_WORDS || it.startsWith("UKLJUC") } && words.any { it in TOTAL_WORDS })
 
     private companion object {
-        const val ROUNDING_CENTS = 2L
+        const val ROUNDING_CENTS = 2L // base x rate and gross x rate / (100 + rate) are rounded by the store and again here, so tax may differ by 2 cents
 
         val TAX_WORDS = setOf("PDV", "PNP", "VAT", "TAX", "MWST", "UST", "IVA", "TVA", "BTW")
         val TAX_PARTS = listOf("POREZ", "MEHRWERTSTEUER", "UMSATZSTEUER", "SALESTAX")

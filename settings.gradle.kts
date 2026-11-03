@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SmartReceiptTaxSplitter"
+rootProject.name = "Smart Receipt Splitter"
 include(":app")
