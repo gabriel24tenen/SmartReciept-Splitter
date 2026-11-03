@@ -1,4 +1,4 @@
-# Smart Receipt-Splitter
+# Smart Receipt Splitter
 
 Android app that scans receipts with on-device OCR, extracts totals, dates, items and VAT, and splits costs — including tax and tips — among multiple people. All OCR processing happens entirely on-device; receipt images are never uploaded to a server.
 
@@ -19,22 +19,29 @@ Android app that scans receipts with on-device OCR, extracts totals, dates, item
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Language & UI | Kotlin, Jetpack Compose (declarative UI) |
-| Camera & OCR | CameraX, Google ML Kit Text Recognition |
-| Local storage | Room Database with TypeConverters (currency, date) |
-| Async | Kotlin Coroutines & Flow |
-| DI | Hilt |
-| Architecture | Clean Architecture (Data / Domain / UI) + MVVM |
+| Layer | Technology                                                     |
+|---|----------------------------------------------------------------|
+| Language & UI | Kotlin, Jetpack Compose (declarative UI)                       |
+| Camera & OCR | CameraX, Google ML Kit Text Recognition                        |
+| Local storage | Room Database (amounts as Long in cents, dates as epoch milis) |
+| Async | Kotlin Coroutines & Flow                                       |
+| DI | Hilt                                                           |
+| Architecture | Clean Architecture (Data / Domain / UI) + MVVM                 |
 
 ## Architecture
 
 The app follows Clean Architecture with a standard MVVM presentation layer:
+```
 data/ → Room entities, DAOs, repositories, OCR & exchange-rate data sources
 domain/ → Use cases, domain models, business logic
 ui/ → Jetpack Compose screens, ViewModels, navigation
+```
 
+- `domain/` has no Android dependencies: images are passed as file paths or JPEG bytes, and everything that touches
+  `Bitmap`, `Context` or ML Kit lives in `data/`. Domain logic is covered by plain JVM unit tests (`app/src/test`).
+- Enums used by Room entities and by the UI (`Statuses`, `Categories`, `CameraPermissionStatus`, `ReceiptField`,
+  `ReceiptFieldError`, `NetMode`, `ShareMode`, `SplitPart`) live in `data/local/enums`.
+- Money is stored as `Long` in the smallest currency unit (cents) and shown in the device locale.
 
 State is exposed from ViewModels via Kotlin `Flow`, with Hilt providing dependency injection across all layers.
 

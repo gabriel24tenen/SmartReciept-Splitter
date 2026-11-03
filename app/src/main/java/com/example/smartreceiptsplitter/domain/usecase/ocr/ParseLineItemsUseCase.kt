@@ -160,7 +160,7 @@ class ParseLineItemsUseCase @Inject constructor() {
             .replace(Regex("\\s+(KOM|kom|Kom|KG|kg|Kg)\\.?$"), "")
             .trim()
     private companion object {
-        const val ROUNDING_CENTS = 1L
+        const val ROUNDING_CENTS = 1L // quantity x unit price is rounded once, so a line total may differ by 1 cent
 
         // First row of the totals section: items are above it (letters only, no spaces, no diacritics)
         val ITEMS_END = listOf(
