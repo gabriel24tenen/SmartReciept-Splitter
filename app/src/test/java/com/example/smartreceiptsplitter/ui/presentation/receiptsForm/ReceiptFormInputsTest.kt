@@ -1,14 +1,11 @@
-package com.example.smartreceiptsplitter.ui.presentation.receiptForm
+package com.example.smartreceiptsplitter.ui.presentation.receiptsForm
 
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptField
 import com.example.smartreceiptsplitter.data.local.enums.ReceiptFieldError
 import com.example.smartreceiptsplitter.domain.model.ReceiptValidation
 import com.example.smartreceiptsplitter.domain.model.ValidatedReceipt
 import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUseCase
-import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
-import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.validate
 import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
-import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.toFormInputs
 import org.junit.Assert.assertEquals
 import org.junit.After
 import org.junit.Before

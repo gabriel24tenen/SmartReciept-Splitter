@@ -1,11 +1,10 @@
 package com.example.smartreceiptsplitter.domain.usecase.scan
 
-import android.graphics.Bitmap
+
 import com.example.smartreceiptsplitter.domain.model.DocumentCorners
 import com.example.smartreceiptsplitter.domain.model.NormalizedPoint
 import kotlin.math.abs
 import kotlin.math.hypot
-import kotlin.math.max
 import kotlin.math.sqrt
 
 internal class  GrayscaleBuffer(val width: Int, val height: Int, val pixels: FloatArray) {
@@ -16,30 +15,13 @@ internal class  GrayscaleBuffer(val width: Int, val height: Int, val pixels: Flo
     }
 }
 
-internal fun Bitmap.downscale(maxDimension: Int): Bitmap {
-    val longSide = max(width, height)
-    if (longSide <= maxDimension) return this
-    val scale = maxDimension.toFloat() / longSide
-    val newWidth = (width * scale).toInt().coerceAtLeast(1)
-    val newHeight = (height * scale).toInt().coerceAtLeast(1)
-    return Bitmap.createScaledBitmap(this, newWidth, newHeight, true)
+internal fun GrayscaleBuffer.detectDocumentCorners(): DocumentCorners {
+    val gradient = boxBlur3x3().sobelMagnitude()
+    val edgePixels = gradient.strongPixelCoordinates(gradient.adaptiveThreshold())
+    return edgePixels.extremeQuad(width, height) ?: DocumentCorners.fullFrame()
 }
 
-internal fun Bitmap.toGrayscale(): GrayscaleBuffer {
-    val w = width
-    val h = height
-    val argb = IntArray(w * h)
-    getPixels(argb, 0, w, 0, 0, w, h)
-    val out = FloatArray(w * h)
-    for (i in argb.indices) {
-        val p = argb[i]
-        val r = (p shr 16) and 0xFF
-        val g = (p shr 8) and 0xFF
-        val b = p and 0xFF
-        out[i] = 0.299f * r + 0.587f * g + 0.114f * b
-    }
-    return GrayscaleBuffer(w, h, out)
-}
+internal const val EDGE_DETECTION_MAX_DIMENSION = 480
 
 internal fun GrayscaleBuffer.boxBlur3x3(): GrayscaleBuffer {
     val out = FloatArray(width * height)
@@ -94,7 +76,7 @@ internal fun List<Pair<Int, Int>>.extremeQuad(imageWidth: Int, imageHeight: Int)
     var topLeft = this[0]       // minimizes x + y
     var bottomRight = this[0]   // maximizes x + y
     var topRight = this[0]      // maximizes x - y
-    var bottomLeft = this[0]    // minimizes x -
+    var bottomLeft = this[0]    // minimizes x - y
 
     for (p in this) {
         val sum = p.first + p.second

@@ -129,7 +129,7 @@ fun ScanScreen (
             is CaptureState.Error -> viewModel.onRetake()
 
             CaptureState.Processing,
-            CaptureState.Saving,
+            //CaptureState.Saving, -- removed after refactoring
             is CaptureState.Recognizing,
             CaptureState.Idle -> Unit
         }
@@ -241,8 +241,6 @@ private fun ScanCaptureFlow(
 
             is CaptureState.Review -> ReviewOverlay( state = captureState, onConfirm = onConfirm, onRetake = onRetake )
 
-            CaptureState.Saving -> LoadingOverlay("Saving...")
-
             is CaptureState.Recognizing -> LoadingOverlay("Reading receipt text...")
 
             is CaptureState.Recognized -> ExtractionReviewOverlay(
@@ -291,7 +289,7 @@ private fun ReviewOverlay(
 ) {
     Column(modifier = Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding()) {
         Image(
-            bitmap = state.correctedBitmap.asImageBitmap(),
+            bitmap = state.preview.asImageBitmap(),
             contentDescription = null,
             modifier = Modifier.fillMaxWidth().weight(1f),
             contentScale = ContentScale.Fit
@@ -314,18 +312,7 @@ private fun ReviewOverlay(
         }
     }
 }
-/* NOT NEEDED ANYMORE AFTER TASK 2.1
-@Composable
-private fun SavedOverlay(onScanAnother: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Receipt saved.", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onScanAnother) { Text("Scan new receipt") }
-        }
-    }
-}
-*/
+
 
 //new, instead of RecognizedTextOverlay
 @Composable
@@ -546,9 +533,5 @@ private fun RawTextSection(fullText: String, expanded: Boolean, onToggle: () -> 
         }
     }
 }
-/* replaced with formatQuantity in @MoneyFormat.kt
-private fun formatQuantity(quantity: Double): String =
-    if(quantity % 1.0 == 0.0) quantity.toLong().toString()
-    else BigDecimal.valueOf(quantity).stripTrailingZeros().toPlainString().replace('.', ',')
-*/
+
 private val REVIEW_DATE_FORMAT= DateTimeFormatter.ofPattern("dd.MM.yyyy")

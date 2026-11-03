@@ -1,6 +1,8 @@
 package com.example.smartreceiptsplitter.domain.usecase.scan
 
 import org.junit.Assert
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DocumentEdgeAlgorithmsTest {
@@ -37,6 +39,26 @@ class DocumentEdgeAlgorithmsTest {
         val corners = (tinyCluster + padding).extremeQuad(imageWidth = 1000, imageHeight = 1000)
         Assert.assertNull(corners)
     }
+
+    @Test
+    fun detectsThePaperOnADarkBackground() {
+        // 120 x 160 dark image with a light "receipt" from (20, 30) to (100, 140)
+        val width = 120
+        val height = 160
+        val pixels = FloatArray(width * height) { i ->
+            val x = i % width
+            val y = i / width
+            if (x in 20..100 && y in 30..140) 230f else 40f
+        }
+        val corners = GrayscaleBuffer(width, height, pixels).detectDocumentCorners()
+
+        assertTrue(corners.isConfident)
+        assertEquals(20f / width, corners.topLeft.x, 0.03f)
+        assertEquals(30f / height, corners.topLeft.y, 0.03f)
+        assertEquals(100f / width, corners.bottomRight.x, 0.03f)
+        assertEquals(140f / height, corners.bottomRight.y, 0.03f)
+    }
+
 
     private fun rectangleOutline(left: Int, top: Int, right: Int, bottom: Int): List<Pair<Int, Int>> {
         val points = mutableListOf<Pair<Int, Int>>()
