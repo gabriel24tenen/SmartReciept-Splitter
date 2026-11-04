@@ -16,7 +16,8 @@ class ExtractReceiptDataUseCaseTest {
     private val zone = ZoneId.of("Europe/Zagreb")
     private val clock = Clock.fixed(Instant.parse("2026-10-25T12:00:00Z"), zone)
     private val extract = ExtractReceiptDataUseCase(
-        ParseTotalAmountUseCase(), ParseReceiptDateUseCase(), ParseLineItemsUseCase(), ParseTaxAmountUseCase()
+        ParseTotalAmountUseCase(), ParseReceiptDateUseCase(), ParseLineItemsUseCase(), ParseTaxAmountUseCase(),
+        ParseMerchantNameUseCase()
     )
 
     @Test
@@ -33,6 +34,7 @@ class ExtractReceiptDataUseCaseTest {
             ),
             clock
         )
+        assertEquals("KONZUM PLUS d.o.o.", result.merchantName)
         assertEquals(248L, result.totalAmount)
         assertEquals(LocalDate.of(2026, 10, 25), result.date)
         assertEquals(50L, result.taxAmount)
@@ -65,10 +67,12 @@ class ExtractReceiptDataUseCaseTest {
             totalAmount = 1250L,
             date = LocalDate.of(2026, 10, 25),
             taxAmount = 250L,
-            items = listOf(ParsedReceiptItem("Kava", 1.0, null, 1250L))
+            items = listOf(ParsedReceiptItem("Kava", 1.0, null, 1250L)),
+            merchantName = "Tommy d.o.o."
         )
         val draft = extraction.toDraft(zone, "EUR")
         assertEquals(LocalDate.of(2026, 10, 25).atStartOfDay(zone).toInstant().toEpochMilli(), draft.date)
+        assertEquals("Tommy d.o.o.", draft.merchantName)
         assertEquals(1250L, draft.totalAmount)
         assertEquals(250L, draft.taxAmount)
         assertNull(draft.tipAmount)

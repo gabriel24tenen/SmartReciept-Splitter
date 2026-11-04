@@ -350,6 +350,7 @@ private fun ExtractionReviewOverlay(
                     item {
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                ExtractedField("Merchant", extraction.merchantName)
                                 ExtractedField("Total", extraction.totalAmount?.let { formatMoney(it, currency) })
                                 ExtractedField("Date", extraction.date?.format(REVIEW_DATE_FORMAT))
                                 ExtractedField("VAT / tax", extraction.taxAmount?.let { formatMoney(it, currency) })
