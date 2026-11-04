@@ -2,6 +2,7 @@ package com.example.smartreceiptsplitter.domain.usecase.split
 
 import com.example.smartreceiptsplitter.domain.model.Receipt
 import com.example.smartreceiptsplitter.domain.model.ReceiptSplit
+import com.example.smartreceiptsplitter.domain.model.SplitSummary
 
 fun List<ReceiptSplit>.isOutdatedFor(receipt: Receipt): Boolean {
     if (isEmpty()) return false
@@ -19,4 +20,12 @@ fun Receipt.withAmountsOf(splits: List<ReceiptSplit>): Receipt {
         taxAmount = splits.sumOf { it.taxShare ?: 0L },
         tipAmount = tip
     )
+}
+
+fun splitSummaries(receipts: List<Receipt>, splits: List<ReceiptSplit>): Map<Long, SplitSummary> {
+    val byReceipt = splits.groupBy { it.receiptId }
+    return receipts.mapNotNull { receipt ->
+        val saved = byReceipt[receipt.id] ?: return@mapNotNull null
+        receipt.id to SplitSummary(participants = saved.size, isOutdated = saved.isOutdatedFor(receipt))
+    }.toMap()
 }
