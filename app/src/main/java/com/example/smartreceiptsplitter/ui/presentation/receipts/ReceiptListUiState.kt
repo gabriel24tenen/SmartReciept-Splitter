@@ -18,7 +18,6 @@ data class ReceiptListUiState(
     val dateFromInvalid: Boolean = false,
     val dateToInvalid: Boolean = false,
     val dateRangeReversed: Boolean = false,
-    val pendingDelete: Receipt? = null,
     val errorMessage: String? = null
     ) {
     val activeFilterCount: Int

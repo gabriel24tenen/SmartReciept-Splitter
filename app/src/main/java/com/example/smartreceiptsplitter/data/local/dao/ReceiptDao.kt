@@ -15,6 +15,8 @@ interface ReceiptDao {
     fun getAll(): Flow<List<ReceiptEntity>> */
     @Query("SELECT * FROM receipts WHERE id = :id")
     suspend fun getById(id: Long): ReceiptEntity?
+    @Query("SELECT * FROM receipts WHERE id = :id")
+    fun observeById(id: Long): Flow<ReceiptEntity>
     @Insert
     suspend fun insert(receipt: ReceiptEntity): Long
     @Update

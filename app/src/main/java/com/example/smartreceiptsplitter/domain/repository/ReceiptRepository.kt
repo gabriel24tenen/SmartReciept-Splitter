@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface ReceiptRepository {
     suspend fun getReceiptById(id: Long): Receipt?
+    fun observeReceipt(id: Long): Flow<Receipt?> // null once the receipt is deleted
     suspend fun addReceipt(receipt: Receipt): Long
     suspend fun updateReceipt(receipt: Receipt)
     suspend fun deleteReceipt(receipt: Receipt)

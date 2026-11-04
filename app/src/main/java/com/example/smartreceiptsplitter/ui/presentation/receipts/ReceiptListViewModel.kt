@@ -24,13 +24,10 @@ import javax.inject.Inject
 class ReceiptListViewModel @Inject constructor(
     private val getReceipts: GetReceiptsUseCase,
     private val getCurrencies: GetReceiptCurrenciesUseCase,
-    private val deleteReceipt: DeleteReceiptUseCase
 ): ViewModel() {
     private val zone: ZoneId = ZoneId.systemDefault()
     private val _state = MutableStateFlow(ReceiptListUiState())
     val state: StateFlow<ReceiptListUiState> = _state.asStateFlow()
-    /*private val _receipts = MutableStateFlow<List<Receipt>>(emptyList())
-    val receipts: StateFlow<List<Receipt>> = _receipts.asStateFlow()*/
 
     init {
         viewModelScope.launch {
@@ -52,18 +49,7 @@ class ReceiptListViewModel @Inject constructor(
     fun onCurrencyChange(currency: String?) = change { copy(currency = currency) }
 
     fun onClearFilters() = change { copy(query = "", dateFrom = "", dateTo = "", currency = null) }
-    fun onDeleteRequest(receipt: Receipt) = _state.update { it.copy(pendingDelete = receipt, errorMessage = null) }
-    fun onDeleteDismiss() = _state.update { it.copy(pendingDelete = null) }
 
-    fun onDeleteConfirm() {
-        val receipt = _state.value.pendingDelete ?: return
-        _state.update { it.copy(pendingDelete = null) }
-        viewModelScope.launch {
-            runCatching { deleteReceipt(receipt) }.onFailure { error ->
-                _state.update { it.copy(errorMessage = error.message ?: "Could not delete the receipt.") }
-            }
-        }
-    }
     private fun change(transform: ReceiptListUiState.() -> ReceiptListUiState) {
         _state.update { it.transform().withDateErrors(zone) }
     }

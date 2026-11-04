@@ -108,7 +108,7 @@ fun ReceiptListScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth()
                 )
 
-                else -> LazyColumn(
+                /*else -> LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -120,30 +120,9 @@ fun ReceiptListScreen(
                             onDelete = { viewModel.onDeleteRequest(receipt) }
                         )
                     }
-                }
+                }*/
             }
         }
-    }
-
-    state.pendingDelete?.let { receipt ->
-        AlertDialog(
-            onDismissRequest = viewModel::onDeleteDismiss,
-            title = { Text("Delete receipt?") },
-            text = {
-                Text(
-                    "${receipt.displayName()} from ${formatDateInput(receipt.date)} " +
-                            "(${formatMoney(receipt.totalAmount, receipt.currency)}) will be deleted permanently, " +
-                            "together with its split. This can't be undone."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = viewModel::onDeleteConfirm,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Delete") }
-            },
-            dismissButton = { TextButton(onClick = viewModel::onDeleteDismiss) { Text("Cancel") } }
-        )
     }
 }
 

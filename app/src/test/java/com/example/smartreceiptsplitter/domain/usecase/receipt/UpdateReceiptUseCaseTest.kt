@@ -23,6 +23,7 @@ class UpdateReceiptUseCaseTest {
         override fun getReceipts(dateFrom: Long?, dateToExclusive: Long?, currency: String?): Flow<List<Receipt>> = flowOf(emptyList())
         override fun getCurrencies(): Flow<List<String>> = flowOf(emptyList())
         override suspend fun getReceiptById(id: Long): Receipt? = null
+        override fun observeReceipt(id: Long): Flow<Receipt?> = flowOf(null)
         override suspend fun addReceipt(receipt: Receipt): Long = 0
         override suspend fun updateReceipt(receipt: Receipt) { updated += receipt }
         override suspend fun deleteReceipt(receipt: Receipt) { deleted += receipt }

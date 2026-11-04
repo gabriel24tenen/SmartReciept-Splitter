@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.smartreceiptsplitter.ui.presentation.receiptDetail.ReceiptDetailScreen
 import com.example.smartreceiptsplitter.ui.presentation.receipts.ReceiptListScreen
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormScreen
 import com.example.smartreceiptsplitter.ui.presentation.scan.ScanScreen
@@ -30,6 +31,17 @@ fun SmartReceiptSplitterNavHost(
             ReceiptListScreen(
                 onBack = { navController.popBackStack() },
                 onOpenReceipt = { receiptId -> navController.navigate(Routes.receiptEdit(receiptId))}
+            )
+        }
+        composable (
+            route = Routes.RECEIPT_EDIT,
+            arguments = listOf(navArgument(Routes.ARG_RECEIPT_ID) { type = NavType.LongType })
+        ) {
+            ReceiptDetailScreen(
+                onBack = { navController.popBackStack() },
+                onEdit = { receiptId -> navController.navigate(Routes.receiptEdit(receiptId)) },
+                onSplit = { receiptId -> navController.navigate(Routes.split(receiptId)) },
+                onDeleted =  {navController.popBackStack() }
             )
         }
         composable(

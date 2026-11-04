@@ -15,6 +15,9 @@ class ReceiptRepositoryImpl @Inject constructor(
     override suspend fun getReceiptById(id: Long): Receipt? =
         receiptDao.getById(id)?.toDomain()
 
+    override fun observeReceipt(id: Long): Flow<Receipt?> =
+        receiptDao.observeById(id).map { it?.toDomain() }
+
     override suspend fun addReceipt(receipt: Receipt): Long =
         receiptDao.insert(receipt.toEntity())
 
