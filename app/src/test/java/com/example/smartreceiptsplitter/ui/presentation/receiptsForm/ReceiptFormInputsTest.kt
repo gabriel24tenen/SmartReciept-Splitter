@@ -8,6 +8,8 @@ import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUs
 import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
 import org.junit.Assert.assertEquals
 import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.util.Locale
