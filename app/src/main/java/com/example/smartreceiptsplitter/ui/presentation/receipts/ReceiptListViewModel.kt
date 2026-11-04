@@ -2,10 +2,8 @@ package com.example.smartreceiptsplitter.ui.presentation.receipts
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.smartreceiptsplitter.domain.model.Receipt
-import com.example.smartreceiptsplitter.domain.usecase.receipt.DeleteReceiptUseCase
 import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptCurrenciesUseCase
-import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptsUseCase
+import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptListItemsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,8 +20,8 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ReceiptListViewModel @Inject constructor(
-    private val getReceipts: GetReceiptsUseCase,
-    private val getCurrencies: GetReceiptCurrenciesUseCase,
+    private val getReceiptListItems: GetReceiptListItemsUseCase,
+    private val getCurrencies: GetReceiptCurrenciesUseCase
 ): ViewModel() {
     private val zone: ZoneId = ZoneId.systemDefault()
     private val _state = MutableStateFlow(ReceiptListUiState())
@@ -33,8 +31,10 @@ class ReceiptListViewModel @Inject constructor(
         viewModelScope.launch {
             _state.map { it.toFilter(zone) }
                 .distinctUntilChanged()
-                .flatMapLatest { filter -> getReceipts(filter) }
-                .collect { receipts ->  _state.update { it.copy(receipts = receipts, isLoading = false) } }
+                .flatMapLatest { filter -> getReceiptListItems(filter) }
+                .collect { items ->
+                    _state.update { it.copy(receipts = items.receipts, splitSummaries = items.splitSummaries, isLoading = false) }
+                }
         }
         viewModelScope.launch {
             getCurrencies().collect { currencies ->
