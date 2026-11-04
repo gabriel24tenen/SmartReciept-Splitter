@@ -11,6 +11,7 @@ import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptByIdUse
 import com.example.smartreceiptsplitter.domain.usecase.receipt.SaveReceiptUseCase
 import com.example.smartreceiptsplitter.domain.usecase.receipt.UpdateReceiptUseCase
 import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUseCase
+import com.example.smartreceiptsplitter.domain.usecase.scan.DeleteReceiptImageUseCase
 import com.example.smartreceiptsplitter.ui.navigation.Routes
 import com.example.smartreceiptsplitter.ui.util.formatDateInput
 import com.example.smartreceiptsplitter.ui.util.formatMoneyInput
@@ -34,7 +35,10 @@ data class ReceiptFormUiState(
     val isEditing: Boolean = false,
     val isLoading: Boolean = false, // receipt is being read
     val notFound: Boolean = false, // the receipt to edit doesn't exist
-    val splitNeedsReview: Boolean = false // after an edit its saved split no longer matches the amounts
+    val splitNeedsReview: Boolean = false, // after an edit its saved split no longer matches the amounts
+    val showDiscardConfirmation: Boolean = false, // receipt is being read
+    val isLeaving: Boolean = false, // the scanned image of an unsaved receipt is being deleted
+    val hasLeft: Boolean = false // the screen can be closed
 )
 
 @HiltViewModel
@@ -43,7 +47,8 @@ class ReceiptFormViewModel @Inject constructor(
     private val validateReceipt: ValidateReceiptUseCase,
     private val saveReceipt: SaveReceiptUseCase,
     private val getReceiptById: GetReceiptByIdUseCase,
-    private val updateReceipt: UpdateReceiptUseCase
+    private val updateReceipt: UpdateReceiptUseCase,
+    private val deleteReceiptImage: DeleteReceiptImageUseCase
 ): ViewModel() {
     private val editingId: Long? = savedStateHandle.get<Long>(Routes.ARG_RECEIPT_ID)
     private var editedReceipt: Receipt? = null //stored receipt is loaded in init
@@ -56,6 +61,7 @@ class ReceiptFormViewModel @Inject constructor(
     val state: StateFlow<ReceiptFormUiState> = _state.asStateFlow()
 
     private var submitted = false //after first Save, errors are just refreshed
+    private var originalInputs: ReceiptFormInputs? = if (editingId == null) _state.value.inputs else null
 
     init {
         if (editingId != null) loadReceiptToEdit(editingId)
@@ -93,6 +99,37 @@ class ReceiptFormViewModel @Inject constructor(
                         })
                 }
             }
+        }
+    }
+
+    fun onBackRequest() {
+        val state = _state.value
+        if (state.isSaving || state.isLeaving || state.hasLeft || state.savedReceiptId != null) return
+        val original = originalInputs
+        if (original != null && state.inputs.hasChangesFrom(original)) {
+            _state.update { it.copy(showDiscardConfirmation = true) }
+        } else {
+            leave()
+        }
+    }
+
+    fun onDiscardConfirm() {
+        _state.update { it.copy(showDiscardConfirmation = false) }
+        leave()
+    }
+
+    fun onDiscardDismiss() = _state.update { it.copy(showDiscardConfirmation = false) }
+
+    private fun leave() {
+        val unsavedImage = imagePath
+        if (unsavedImage == null) {
+            _state.update { it.copy(hasLeft = true) }
+            return
+        }
+        _state.update { it.copy(isLeaving = true) }
+        viewModelScope.launch {
+            runCatching { deleteReceiptImage(unsavedImage) }
+            _state.update { it.copy(isLeaving = false, hasLeft = true) }
         }
     }
 

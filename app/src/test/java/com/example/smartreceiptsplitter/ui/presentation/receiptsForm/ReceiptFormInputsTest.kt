@@ -186,4 +186,27 @@ class ReceiptFormInputsTest {
         val corrected = text.copy(total = "60")
         assertEquals(6000L, (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount)
     }
+
+    @Test
+    fun typedValueIsAChange() {
+        val scanned = ReceiptFormInputs("Konzum", "19.10.2026", "12.50", "", "", "EUR")
+        assertFalse(scanned.hasChangesFrom(scanned))
+        assertTrue(scanned.copy(total = "12.60").hasChangesFrom(scanned))
+        assertTrue(scanned.copy(merchantName = "").hasChangesFrom(scanned))
+        assertTrue(scanned.copy(tip = "1").hasChangesFrom(scanned))
+    }
+
+    @Test
+    fun spacesAroundAValueAreNotAChange() {
+        val manual = ReceiptFormInputs(date = "19.10.2026")
+        assertFalse(manual.copy(merchantName = "  ", date = " 19.10.2026 ").hasChangesFrom(manual))
+    }
+
+    @Test
+    fun valueTypedAndDeletedAgainIsNotAChange() {
+        val manual = ReceiptFormInputs(date = "19.10.2026")
+        val typed = manual.copy(total = "5")
+        assertTrue(typed.hasChangesFrom(manual))
+        assertFalse(typed.copy(total = "").hasChangesFrom(manual))
+    }
 }

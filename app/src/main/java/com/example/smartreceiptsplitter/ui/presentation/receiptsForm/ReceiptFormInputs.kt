@@ -68,3 +68,14 @@ fun ReceiptDraft.toFormInputs(zone: ZoneId = ZoneId.systemDefault()) = ReceiptFo
     tip = tipAmount?.let(::formatMoneyInput).orEmpty(),
     currency = currency.ifBlank { ReceiptFormInputs.DEFAULT_CURRENCY }
 )
+
+fun ReceiptFormInputs.hasChangesFrom(original: ReceiptFormInputs): Boolean = trimmed() != original.trimmed()
+
+private fun ReceiptFormInputs.trimmed() = ReceiptFormInputs(
+    merchantName = merchantName.trim(),
+    date = date.trim(),
+    total = total.trim(),
+    tax = tax.trim(),
+    tip = tip.trim(),
+    currency = currency.trim()
+)
