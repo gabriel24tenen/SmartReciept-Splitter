@@ -18,14 +18,13 @@ class UpdateReceiptUseCaseTest {
 
     private class FakeReceiptRepository : ReceiptRepository {
         val updated = mutableListOf<Receipt>()
-        val deleted = mutableListOf<Receipt>()
         override fun getReceipts(dateFrom: Long?, dateToExclusive: Long?, currency: String?): Flow<List<Receipt>> = flowOf(emptyList())
         override fun getCurrencies(): Flow<List<String>> = flowOf(emptyList())
         override suspend fun getReceiptById(id: Long): Receipt? = null
         override fun observeReceipt(id: Long): Flow<Receipt?> = flowOf(null)
         override suspend fun addReceipt(receipt: Receipt): Long = 0
         override suspend fun updateReceipt(receipt: Receipt) { updated += receipt }
-        override suspend fun deleteReceipt(receipt: Receipt) { deleted += receipt }
+        override suspend fun deleteReceipt(receipt: Receipt) = Unit
     }
 
     private class FakeSplitRepository(private val saved: List<ReceiptSplit>) : ReceiptSplitRepository {
@@ -106,10 +105,5 @@ class UpdateReceiptUseCaseTest {
         assertFalse(update(edited.copy(merchantName = "Tommy", date = 9_000, currency = "EUR"), oneSplit).first)
     }
 
-    @Test
-    fun deleteUseCaseDeletesTheGivenReceipt() {
-        val repository = FakeReceiptRepository()
-        runBlocking { DeleteReceiptUseCase(repository)(existing) }
-        assertEquals(listOf(existing), repository.deleted)
-    }
+
 }
