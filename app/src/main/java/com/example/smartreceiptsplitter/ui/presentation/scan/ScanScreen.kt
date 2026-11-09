@@ -207,6 +207,7 @@ private fun ScanCaptureFlow(
         if(cameraActive) {
             CameraPreview(
                 modifier = Modifier.fillMaxSize(),
+                showEdgeOverlay = captureState == CaptureState.Idle,
                 onImageCaptureReady = { imageCapture = it })
         }
         when(captureState) {
