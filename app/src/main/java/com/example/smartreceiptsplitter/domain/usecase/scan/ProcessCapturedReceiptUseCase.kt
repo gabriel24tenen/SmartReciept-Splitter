@@ -1,5 +1,6 @@
 package com.example.smartreceiptsplitter.domain.usecase.scan
 
+import com.example.smartreceiptsplitter.domain.model.DocumentCorners
 import com.example.smartreceiptsplitter.domain.repository.ReceiptImageProcessor
 import com.example.smartreceiptsplitter.domain.repository.ReceiptImageStorage
 import javax.inject.Inject
@@ -8,11 +9,10 @@ class ProcessCapturedReceiptUseCase  @Inject constructor(
     private val processor: ReceiptImageProcessor,
     private val storage: ReceiptImageStorage
 ) {
-    suspend operator fun invoke (jpeg: ByteArray, rotationDegrees: Int): ScannedReceiptImage {
-        val corrected = processor.correct(jpeg, rotationDegrees)
-        val path = storage.save(corrected.jpeg)
-        return ScannedReceiptImage(path, corrected.isConfident)
+    suspend operator fun invoke (jpeg: ByteArray, rotationDegrees: Int, corners: DocumentCorners): String {
+        val crop = corners.clamped()
+        require(crop.isUsableCrop()) { "The corners don't outline a receipt."}
+        val corrected = processor.correct(jpeg, rotationDegrees, crop)
+        return storage.save(corrected)
     }
 }
-
-data class ScannedReceiptImage(val path: String, val isConfident: Boolean) //isConfident - false when the paper's edges were not found and the whole photo was kept

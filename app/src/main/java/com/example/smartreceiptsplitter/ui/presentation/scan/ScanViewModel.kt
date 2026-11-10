@@ -5,11 +5,15 @@ import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartreceiptsplitter.data.local.enums.CameraPermissionStatus
+import com.example.smartreceiptsplitter.domain.model.DocumentCorner
+import com.example.smartreceiptsplitter.domain.model.DocumentCorners
+import com.example.smartreceiptsplitter.domain.model.NormalizedPoint
 import com.example.smartreceiptsplitter.domain.model.ReceiptExtraction
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
 import com.example.smartreceiptsplitter.domain.usecase.ocr.ExtractReceiptDataUseCase
 import com.example.smartreceiptsplitter.domain.usecase.ocr.RecognizeReceiptTextUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.DeleteReceiptImageUseCase
+import com.example.smartreceiptsplitter.domain.usecase.scan.DetectReceiptUseCase
 import com.example.smartreceiptsplitter.domain.usecase.scan.ProcessCapturedReceiptUseCase
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.ReceiptFormInputs
 import com.example.smartreceiptsplitter.ui.presentation.receiptsForm.toFormInputs
@@ -28,7 +32,12 @@ import javax.inject.Inject
 sealed interface CaptureState {
     data object Idle : CaptureState //live preview, ready for the shutter
     data object Processing : CaptureState // capture just happened, detection + correction running
-    data class Review(val file: File, val preview: Bitmap, val isConfident: Boolean) : CaptureState // corrected image ready for the user to accept or discard
+    // corrected image ready for the user to accept or discard
+    data class Review(val photo: CapturedPhoto, val preview: Bitmap, val detected: DocumentCorners, val corners: DocumentCorners) : CaptureState {
+        val isConfident get() = detected.isConfident
+        val canUseCorners get() = corners.isUsableCrop()
+    }
+    data object Correcting : CaptureState // "Use photo" cropping to the corners and saving the image
     // data object Saving : CaptureState // User confirmed, compressing + writing to disk -- removed after refactoring
     data class Recognizing(val file: File): CaptureState //image is on disk, on-device OCR is running
     data class Recognized(val file: File, val text: RecognizedText, val extraction: ReceiptExtraction): CaptureState //OCR finished, raw text blocks are ready
@@ -38,6 +47,7 @@ sealed interface CaptureState {
 
 @HiltViewModel
 class ScanViewModel @Inject constructor(
+    private val detectReceipt: DetectReceiptUseCase,
     private val processCapturedReceiptUseCase: ProcessCapturedReceiptUseCase,
     private val recognizeReceiptText: RecognizeReceiptTextUseCase,
     private val extractReceiptData: ExtractReceiptDataUseCase,
@@ -70,11 +80,11 @@ class ScanViewModel @Inject constructor(
         _captureState.value = CaptureState.Processing
         viewModelScope.launch {
             runCatching {
-                val scanned = processCapturedReceiptUseCase(photo.jpeg, photo.rotationDegrees)
-                val file = File(scanned.path)
-                val preview = withContext(Dispatchers.IO) { BitmapFactory.decodeFile(file.path) }
-                    ?: error("Unable to read the corrected image.")
-                CaptureState.Review(file, preview, scanned.isConfident)
+                val detected = detectReceipt(photo.jpeg, photo.rotationDegrees)
+                val preview = withContext(Dispatchers.Default) {
+                    BitmapFactory.decodeByteArray(detected.previewJpeg, 0, detected.previewJpeg.size)
+                } ?: error("Unable to read the corrected image.")
+                CaptureState.Review(photo, preview, detected = detected.corners, corners = detected.corners)
             }.fold(
                 onSuccess = {  review ->
                     _captureState.value = review
@@ -90,15 +100,38 @@ class ScanViewModel @Inject constructor(
         _captureState.value = CaptureState.Error(message)
     }
 
+    fun onCornerMoved(corner: DocumentCorner, point: NormalizedPoint) {
+        val review = _captureState.value as? CaptureState.Review ?: return
+        _captureState.value = review.copy(corners = review.corners.with(corner, point))
+    }
+
+    fun onResetCorners() {
+        val review = _captureState.value as? CaptureState.Review ?: return
+        _captureState.value = review.copy(corners = review.detected)
+    }
+
     fun onConfirm() {
-        val file = (_captureState.value as? CaptureState.Review)?.file ?: return
+        val review = _captureState.value as? CaptureState.Review ?: return
+        if (!review.canUseCorners) return
+        _captureState.value = CaptureState.Correcting
+        viewModelScope.launch {
+            runCatching {
+                processCapturedReceiptUseCase(review.photo.jpeg, review.photo.rotationDegrees, review.corners)
+            }.fold(
+                onSuccess = { path -> recognize(File(path)) },
+                onFailure = { error -> _captureState.value = CaptureState.Error(error.message ?: "Text recognition failed.") }
+            )
+        }
+    }
+
+    private fun recognize(file: File) {
         _captureState.value = CaptureState.Recognizing(file)
         viewModelScope.launch {
             runCatching {
                 val text = recognizeReceiptText(file.path)
-                text to withContext(Dispatchers.Default) { extractReceiptData(text, clock)}
+                text to withContext(Dispatchers.Default) { extractReceiptData(text, clock) }
             }.fold(
-                onSuccess = { (text, extraction) -> _captureState.value = CaptureState.Recognized(file, text, extraction) },
+                onSuccess = { (text, extraction) -> CaptureState.Recognized(file, text, extraction)},
                 onFailure = { error -> _captureState.value = CaptureState.RecognitionFailed(file, error.message ?: "Text recognition failed.") }
             )
         }
@@ -120,8 +153,8 @@ class ScanViewModel @Inject constructor(
     }
 
     fun onRetake() {
+        // the review has only the photo in memory, a file exists from the "Use photo" on
         val unusedImage = when (val state = _captureState.value) {
-            is CaptureState.Review -> state.file
             is CaptureState.Recognized -> state.file
             is CaptureState.RecognitionFailed -> state.file
             else -> null
