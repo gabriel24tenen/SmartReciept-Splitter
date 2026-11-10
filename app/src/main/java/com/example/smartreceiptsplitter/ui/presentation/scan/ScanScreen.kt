@@ -53,6 +53,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -286,7 +292,13 @@ private fun ScanCaptureFlow(
 @Composable
 private fun ShutterButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
-        onClick = onClick, modifier = modifier.size(72.dp), shape = CircleShape, color = Color.White
+        onClick = onClick,
+        modifier = modifier.size(72.dp).semantics {
+            contentDescription = "Take photo"
+            role = Role.Button
+        },
+        shape = CircleShape,
+        color = Color.White
     ) { }
 }
 
@@ -298,7 +310,10 @@ private fun LoadingOverlay(label: String) {
             .background(Color.Black.copy(alpha = 0.6f)),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite}
+        ) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(12.dp))
             Text(label, color = Color.White)
