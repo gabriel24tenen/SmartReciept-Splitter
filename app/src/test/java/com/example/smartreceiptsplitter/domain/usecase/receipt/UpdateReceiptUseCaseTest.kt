@@ -18,6 +18,7 @@ class UpdateReceiptUseCaseTest {
 
     private class FakeReceiptRepository : ReceiptRepository {
         val updated = mutableListOf<Receipt>()
+        // override fun getAllReceipts(): Flow<List<Receipt>> = flowOf(emptyList())
         override fun getReceipts(dateFrom: Long?, dateToExclusive: Long?, currency: String?): Flow<List<Receipt>> = flowOf(emptyList())
         override fun getCurrencies(): Flow<List<String>> = flowOf(emptyList())
         override suspend fun getReceiptById(id: Long): Receipt? = null
@@ -31,6 +32,7 @@ class UpdateReceiptUseCaseTest {
         override fun observeSplits(receiptId: Long): Flow<List<ReceiptSplit>> = flowOf(saved)
         override fun observeAllSplits(): Flow<List<ReceiptSplit>> = flowOf(saved)
         override suspend fun saveSplits(receiptId: Long, splits: List<ReceiptSplit>, receiptTipAmount: Long?) = Unit
+        override suspend fun countSplitsOf(personId: Long): Int = saved.count { it.personId == personId }
     }
 
     private val existing = Receipt(
@@ -104,6 +106,5 @@ class UpdateReceiptUseCaseTest {
         // a change of name, date or currency doesn't touch the amounts of the split
         assertFalse(update(edited.copy(merchantName = "Tommy", date = 9_000, currency = "EUR"), oneSplit).first)
     }
-
 
 }

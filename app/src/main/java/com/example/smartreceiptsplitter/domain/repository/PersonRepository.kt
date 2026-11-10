@@ -7,4 +7,6 @@ interface PersonRepository {
     fun getAllPerson(): Flow<List<Person>>
     suspend fun getOrCreateSelf(): Person //creates user on first use, later returns the person that it represents
     suspend fun addPerson(person: Person): Long
+    suspend fun renamePerson(id: Long, name: String)
+    suspend fun deletePerson(id: Long)
 }

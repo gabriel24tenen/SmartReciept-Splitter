@@ -46,12 +46,15 @@ class ReceiptListAndDetailUseCaseTest {
         override fun observeSplits(receiptId: Long): Flow<List<ReceiptSplit>> = flowOf(splits.filter { it.receiptId == receiptId })
         override fun observeAllSplits(): Flow<List<ReceiptSplit>> = flowOf(splits)
         override suspend fun saveSplits(receiptId: Long, splits: List<ReceiptSplit>, receiptTipAmount: Long?) = Unit
+        override suspend fun countSplitsOf(personId: Long): Int = splits.count { it.personId == personId }
     }
 
     private class FakePersons(private val people: List<Person>) : PersonRepository {
         override fun getAllPerson(): Flow<List<Person>> = flowOf(people)
         override suspend fun getOrCreateSelf(): Person = people.first { it.isSelf }
         override suspend fun addPerson(person: Person): Long = 0
+        override suspend fun renamePerson(id: Long, name: String) = Unit
+        override suspend fun deletePerson(id: Long) = Unit
     }
 
     // ---- list

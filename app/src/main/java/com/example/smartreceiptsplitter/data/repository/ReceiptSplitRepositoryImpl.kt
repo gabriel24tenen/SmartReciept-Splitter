@@ -22,6 +22,9 @@ class ReceiptSplitRepositoryImpl @Inject constructor(
     override fun observeAllSplits(): Flow<List<ReceiptSplit>> =
         splitDao.getAll().map { list -> list.map { it.toDomain() } }
 
+    override suspend fun countSplitsOf(personId: Long): Int =
+        splitDao.countForPerson(personId)
+
     override suspend fun saveSplits(receiptId: Long, splits: List<ReceiptSplit>, receiptTipAmount: Long?) {
         require(splits.map { it.personId }.distinct().size == splits.size) {
             "A person can only appear once in a receipt split."
