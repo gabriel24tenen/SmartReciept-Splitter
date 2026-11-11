@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.smartreceiptsplitter.domain.model.Receipt
 import com.example.smartreceiptsplitter.domain.model.SplitSummary
+import com.example.smartreceiptsplitter.ui.util.displayName
 import com.example.smartreceiptsplitter.ui.util.formatDateInput
 import com.example.smartreceiptsplitter.ui.util.formatMoney
 import com.example.smartreceiptsplitter.ui.util.label
@@ -254,5 +255,3 @@ private fun EmptyState(
         }
     }
 }
-
-private fun Receipt.displayName(): String = merchantName?.takeIf { it.isNotBlank() } ?: "Unknown merchant"

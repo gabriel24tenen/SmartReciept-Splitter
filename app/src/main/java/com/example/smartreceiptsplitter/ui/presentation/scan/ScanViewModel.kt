@@ -83,7 +83,7 @@ class ScanViewModel @Inject constructor(
                 val detected = detectReceipt(photo.jpeg, photo.rotationDegrees)
                 val preview = withContext(Dispatchers.Default) {
                     BitmapFactory.decodeByteArray(detected.previewJpeg, 0, detected.previewJpeg.size)
-                } ?: error("Unable to read the corrected image.")
+                } ?: error("Unable to read the captured image.")
                 CaptureState.Review(photo, preview, detected = detected.corners, corners = detected.corners)
             }.fold(
                 onSuccess = {  review ->
@@ -119,7 +119,7 @@ class ScanViewModel @Inject constructor(
                 processCapturedReceiptUseCase(review.photo.jpeg, review.photo.rotationDegrees, review.corners)
             }.fold(
                 onSuccess = { path -> recognize(File(path)) },
-                onFailure = { error -> _captureState.value = CaptureState.Error(error.message ?: "Text recognition failed.") }
+                onFailure = { error -> _captureState.value = CaptureState.Error(error.message ?: "Saving the image failed.") }
             )
         }
     }
@@ -131,7 +131,7 @@ class ScanViewModel @Inject constructor(
                 val text = recognizeReceiptText(file.path)
                 text to withContext(Dispatchers.Default) { extractReceiptData(text, clock) }
             }.fold(
-                onSuccess = { (text, extraction) -> CaptureState.Recognized(file, text, extraction)},
+                onSuccess = { (text, extraction) -> _captureState.value = CaptureState.Recognized(file, text, extraction)},
                 onFailure = { error -> _captureState.value = CaptureState.RecognitionFailed(file, error.message ?: "Text recognition failed.") }
             )
         }

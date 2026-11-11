@@ -95,7 +95,7 @@ fun ReceiptDetailScreen(
             title = { Text("Delete receipt?") },
             text = {
                 Text(
-                    "${receipt.displayName()} from ${formatDateInput(receipt.date)}" +
+                    "${receipt.displayName()} from ${formatDateInput(receipt.date)} " +
                             "(${formatMoney(receipt.totalAmount, receipt.currency)}) will be deleted permanently, " +
                             "together with its split. This can't be undone."
                 )
@@ -130,34 +130,40 @@ private fun DetailContent(
     ) {
         Text(receipt.displayName(), style = MaterialTheme.typography.headlineSmall)
         Text(
-            formatDateInput(receipt.date) + if (receipt.isManualEntry) " · entered by hand" else "· scanned",
+            formatDateInput(receipt.date) + if (receipt.isManualEntry) " · entered by hand" else " · scanned",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
 
-    AmountsCard(receipt)
+        AmountsCard(receipt)
 
-    receipt.imagePath?.let { path ->
-        ReceiptPhoto(path = path, onOpen = { showFullImage = true })
-        if (showFullImage) FullScreenPhoto(path = path, onClose = { showFullImage = false})
-    }
+        receipt.imagePath?.let { path ->
+            ReceiptPhoto(path = path, onOpen = { showFullImage = true })
+            if (showFullImage) FullScreenPhoto(path = path, onClose = { showFullImage = false })
+        }
 
-    SplitSection(detail = detail, onSplit = onSplit)
+        SplitSection(detail = detail, onSplit = onSplit)
 
-    errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(onClick = onEdit, enabled = !isBusy, modifier = Modifier.weight(1f)) { Text("Edit") }
-        TextButton(
-            onClick = onDelete,
-            enabled = !isBusy,
-            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-            modifier = Modifier.weight(1f)
-        ) { Text("Delete") }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedButton(
+                onClick = onEdit,
+                enabled = !isBusy,
+                modifier = Modifier.weight(1f)
+            ) { Text("Edit") }
+            TextButton(
+                onClick = onDelete,
+                enabled = !isBusy,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.weight(1f)
+            ) { Text("Delete") }
+        }
     }
 }
-
 @Composable
 private fun AmountsCard(receipt: Receipt) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -221,7 +227,7 @@ private fun SplitSection(detail: ReceiptDetail, onSplit: () -> Unit) {
                     }
                     val parts = listOfNotNull(
                         share.split.taxShare?.let { "tax ${formatMoney(it, currency)}" },
-                        share.split.taxShare?.let { "tip ${formatMoney(it, currency)}" }
+                        share.split.tipShare?.let { "tip ${formatMoney(it, currency)}" }
                     )
                     if (parts.isNotEmpty()) {
                         Text(

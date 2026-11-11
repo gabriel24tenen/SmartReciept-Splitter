@@ -14,7 +14,7 @@ internal fun LiveReceiptEdges.pointsInView(viewWidth: Float, viewHeight: Float):
     val offsetX = (viewWidth - frameWidth * scale) / 2f
     val offsetY = (viewHeight - frameHeight * scale) / 2f
     return listOf(corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft)
-        .map { point -> offsetX + point.x * frameWidth * scale to offsetY * point.y * frameHeight * scale }
+        .map { point -> offsetX + point.x * frameWidth * scale to offsetY + point.y * frameHeight * scale }
 }
 //Lets a frame through at most every minIntervalNanos (camera timestamps), the rest are dropped right away
 internal class FrameThrottle(private val minIntervalNanos: Long) {
@@ -22,7 +22,7 @@ internal class FrameThrottle(private val minIntervalNanos: Long) {
     fun shouldAnalyze(timestampNanos: Long): Boolean {
         val last = lastTimestamp
         if (last != null && timestampNanos - last in 0 until minIntervalNanos) return false
-        lastTimestamp = minIntervalNanos
+        lastTimestamp = timestampNanos
         return true
     }
 }

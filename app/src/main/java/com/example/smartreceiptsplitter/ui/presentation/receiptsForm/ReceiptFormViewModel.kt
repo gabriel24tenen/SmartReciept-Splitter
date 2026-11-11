@@ -162,6 +162,7 @@ class ReceiptFormViewModel @Inject constructor(
             val inputs = state.inputs.transform()
             state.copy(inputs = inputs, errors = if (submitted) errorsOf(inputs) else state.errors)
         }
+        saveInputs(_state.value.inputs)
     }
 
     private fun saveInputs(inputs: ReceiptFormInputs) {
@@ -176,11 +177,13 @@ class ReceiptFormViewModel @Inject constructor(
             runCatching { getReceiptById(id) }.fold(
                 onSuccess = { receipt ->
                     editedReceipt = receipt
+                    val inputs = receipt?.toEditInputs(clock)
+                    originalInputs = inputs
                     _state.update {
-                        if (receipt == null) it.copy(isLoading = false, notFound = true)
+                        if (receipt == null || inputs == null) it.copy(isLoading = false, notFound = true)
                         else it.copy(
                             isLoading = false,
-                            inputs = receipt.toEditInputs(clock),
+                            inputs = restoredInputs ?: inputs,
                             isManualEntry = receipt.isManualEntry
                         )
                     }

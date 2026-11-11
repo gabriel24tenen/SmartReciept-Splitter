@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.smartreceiptsplitter.domain.usecase.scan.rotated.ReceiptEdgeAnalyzer
+import com.example.smartreceiptsplitter.domain.usecase.scan.ReceiptEdgeAnalyzer
 import java.util.concurrent.Executors
 
 private const val TAG = "CameraPreview"
@@ -76,7 +76,7 @@ fun CameraPreview(
                 val imageCapture = ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY).build()
 
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle( lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture)
+                cameraProvider.bindToLifecycle( lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture, imageAnalysis)
                 onImageCaptureReady(imageCapture)
             }
             catch (e: Exception) {
@@ -111,9 +111,9 @@ fun CameraPreview(
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
             factory = { previewView },
-            modifier = modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         )
-        if(showEdgeOverlay) edges?.let {}
+        if(showEdgeOverlay) edges?.let { ReceiptOutline(it) }
     }
 }
 

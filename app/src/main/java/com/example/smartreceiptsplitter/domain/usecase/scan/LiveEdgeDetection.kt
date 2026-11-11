@@ -20,7 +20,7 @@ internal fun lumaToGrayscale(
     val blockSize = (step * step).toFloat()
     val out = FloatArray(outWidth * outHeight)
     for (oy in 0 until outHeight) {
-        for (ox in 0 until outHeight) {
+        for (ox in 0 until outWidth) {
             var sum = 0
             for (dy in 0 until step) {
                 val row = (oy * step + dy) * rowStride

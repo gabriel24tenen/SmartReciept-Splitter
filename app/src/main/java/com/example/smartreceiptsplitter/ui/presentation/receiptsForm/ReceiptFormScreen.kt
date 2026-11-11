@@ -68,7 +68,7 @@ fun ReceiptFormScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(onClick = viewModel::onBackRequest, enabled = !state.isLeaving, modifier = Modifier.weight(1f)) { Text("Back") }
-                Button(onClick = viewModel::onSave, enabled = !state.isSaving && !state.isLoading && !state.notFound, modifier = Modifier.weight(1f)) { Text("Save") }
+                Button(onClick = viewModel::onSave, enabled = !state.isSaving && !state.isLoading && !state.notFound && !state.isLeaving, modifier = Modifier.weight(1f)) { Text("Save") }
             }
         }
     ) { padding ->

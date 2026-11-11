@@ -46,7 +46,7 @@ data class DocumentCorners(
             val a = points[i]
             val b = points[(i + 1) % 4]
             val c = points[(i + 2) % 4]
-            (b.x - a.x) * (c.y - b.y) *  (c.x - b.x) > 0f
+            (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x) > 0f
         }
         return turnsClockwise && area(points) >= MIN_CROP_AREA
     }

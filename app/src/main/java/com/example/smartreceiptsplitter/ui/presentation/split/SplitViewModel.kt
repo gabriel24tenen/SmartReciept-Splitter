@@ -126,7 +126,7 @@ class SplitViewModel @Inject constructor(
         }
     }
 
-    fun onEditPerson(person: Person) = update { copy(editedPerson = null, personMessage = null) }
+    fun onEditPerson(person: Person) = update { copy(editedPerson = person, personMessage = null) }
     fun onEditPersonDismiss() = update { copy(editedPerson = null, personMessage = null) }
     fun onRenamePerson(name: String) {
         val person = _state.value.editedPerson ?: return
@@ -157,7 +157,7 @@ class SplitViewModel @Inject constructor(
                                 )
                             )
                             is RemovePersonResult.UsedInReceipts -> copy(
-                                personMessage = "${person.name} is part of the split on ${result.count}" +
+                                personMessage = "${person.name} is part of the split on ${result.count} " +
                                         (if (result.count == 1) "receipt" else "receipts") + " and can't be removed."
                             )
                             RemovePersonResult.IsSelf -> copy(personMessage = "Your own entry can't be removed.")

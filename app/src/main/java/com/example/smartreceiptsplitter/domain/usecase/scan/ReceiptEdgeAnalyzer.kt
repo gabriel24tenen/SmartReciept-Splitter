@@ -1,11 +1,7 @@
-package com.example.smartreceiptsplitter.domain.usecase.scan.rotated
+package com.example.smartreceiptsplitter.domain.usecase.scan
 
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import com.example.smartreceiptsplitter.domain.usecase.scan.detectDocumentCorners
-import com.example.smartreceiptsplitter.domain.usecase.scan.isReceiptOutline
-import com.example.smartreceiptsplitter.domain.usecase.scan.lumaToGrayscale
-import com.example.smartreceiptsplitter.domain.usecase.scan.rotated
 import com.example.smartreceiptsplitter.ui.presentation.scan.FrameThrottle
 import com.example.smartreceiptsplitter.ui.presentation.scan.LiveReceiptEdges
 

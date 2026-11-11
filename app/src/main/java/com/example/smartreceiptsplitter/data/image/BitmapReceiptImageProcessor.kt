@@ -126,7 +126,7 @@ class BitmapReceiptImageProcessor  @Inject constructor() : ReceiptImageProcessor
 
     private fun Bitmap.toJpeg(quality: Int): ByteArray =
         ByteArrayOutputStream().use { output ->
-            compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)
+            compress(Bitmap.CompressFormat.JPEG, quality, output)
             output.toByteArray()
         }
 

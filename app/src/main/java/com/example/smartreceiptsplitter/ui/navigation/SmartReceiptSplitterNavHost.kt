@@ -34,12 +34,12 @@ fun SmartReceiptSplitterNavHost(
             )
         }
         composable (
-            route = Routes.RECEIPT_EDIT,
+            route = Routes.RECEIPT_DETAIL,
             arguments = listOf(navArgument(Routes.ARG_RECEIPT_ID) { type = NavType.LongType })
         ) {
             ReceiptDetailScreen(
                 onBack = { navController.popBackStack() },
-                onEdit = { receiptId -> navController.navigate(Routes.receiptEdit(receiptId)) },
+                onEdit = { receiptId -> navController.navigate(Routes.receiptDetail(receiptId)) },
                 onSplit = { receiptId -> navController.navigate(Routes.split(receiptId)) },
                 onDeleted =  {navController.popBackStack() }
             )

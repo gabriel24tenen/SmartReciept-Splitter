@@ -236,7 +236,8 @@ private fun SplitContent(
             ) {
                 Checkbox(checked = selected, onCheckedChange = null)
                 Spacer(Modifier.width(12.dp))
-                Text(person.name)
+                Text(person.name, modifier = Modifier.weight(1f))
+                TextButton(onClick = { actions.onEditPerson(person) }) { Text("Edit") }
             }
         }
         item(key = "add-person") { OutlinedButton(onClick = actions.onAddPerson)  { Text("Add person") } }
@@ -423,8 +424,9 @@ private fun EditPersonDialog(
                     TextButton(
                         onClick = onRemove,
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) { Text("Cancel") }
+                    ) { Text("Remove") }
                 }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
             }
         }
     )
