@@ -79,3 +79,30 @@ private fun ReceiptFormInputs.trimmed() = ReceiptFormInputs(
     tip = tip.trim(),
     currency = currency.trim()
 )
+
+fun ReceiptFormInputs.toSavedState(): Map<String, String> = mapOf(
+    SAVED_MERCHANT to merchantName,
+    SAVED_DATE to date,
+    SAVED_TOTAL to total,
+    SAVED_TAX to tax,
+    SAVED_TIP to tip,
+    SAVED_CURRENCY to currency
+)
+
+fun receiptFormInputsFromSavedState(read: (key: String) -> String?): ReceiptFormInputs? {
+    return ReceiptFormInputs(
+        merchantName = read(SAVED_MERCHANT) ?: return null,
+        date = read(SAVED_DATE) ?: return null,
+        total = read(SAVED_TOTAL) ?: return null,
+        tax = read(SAVED_TAX) ?: return null,
+        tip = read(SAVED_TIP) ?: return null,
+        currency = read(SAVED_CURRENCY) ?: return null
+    )
+}
+
+private const val SAVED_MERCHANT = "form_input_merchant"
+private const val SAVED_DATE = "form_input_date"
+private const val SAVED_TOTAL = "form_input_total"
+private const val SAVED_TAX = "form_input_tax"
+private const val SAVED_TIP = "form_input_tip"
+private const val SAVED_CURRENCY = "form_input_currency"

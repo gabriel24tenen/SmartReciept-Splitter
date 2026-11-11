@@ -9,6 +9,7 @@ import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
 import org.junit.Assert.assertEquals
 import org.junit.After
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -210,5 +211,29 @@ class ReceiptFormInputsTest {
         val typed = manual.copy(total = "5")
         assertTrue(typed.hasChangesFrom(manual))
         assertFalse(typed.copy(total = "").hasChangesFrom(manual))
+    }
+
+    @Test
+    fun savedInputsComeBackUnchanged() {
+        val typed = ReceiptFormInputs("Konzum d.o.o.", "19.10.2026", "12,50", "", "1.00", "USD")
+        val handle = typed.toSavedState()
+        assertEquals(typed, receiptFormInputsFromSavedState { handle[it] })
+    }
+
+    @Test
+    fun formOpenedForTheFirstTimeHasNothingToRestore() {
+        assertNull(receiptFormInputsFromSavedState { null })
+        // a half written state (one key missing) isn't restored either
+        val partial = ReceiptFormInputs(total = "5").toSavedState().entries.drop(1).associate { it.key to it.value }
+        assertNull(receiptFormInputsFromSavedState { partial[it] })
+    }
+
+    @Test
+    fun savedKeysDontCollideWithTheRouteArguments() {
+        // the route arguments of the receipt form live in the same SavedStateHandle
+        val routeArguments = setOf("imagePath", "merchant", "date", "total", "tax", "tip", "currency", "receiptId")
+        val keys = ReceiptFormInputs().toSavedState().keys
+        assertEquals(6, keys.size)
+        assertTrue(keys.none { it in routeArguments })
     }
 }
