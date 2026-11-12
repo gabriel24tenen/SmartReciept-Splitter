@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,8 +36,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.smartreceiptsplitter.domain.model.Receipt
+import com.example.smartreceiptsplitter.domain.model.SplitSummary
+import com.example.smartreceiptsplitter.ui.util.displayName
 import com.example.smartreceiptsplitter.ui.util.formatDateInput
 import com.example.smartreceiptsplitter.ui.util.formatMoney
+import com.example.smartreceiptsplitter.ui.util.label
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,7 +95,7 @@ fun ReceiptListScreen(
                 )
             }
 
-            state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            // state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
             when {
                 state.isLoading -> Box(
@@ -116,34 +117,13 @@ fun ReceiptListScreen(
                     items(state.receipts, key = { it.id }) { receipt ->
                         ReceiptRow(
                             receipt = receipt,
-                            onOpen = { onOpenReceipt(receipt.id) },
-                            onDelete = { viewModel.onDeleteRequest(receipt) }
+                            splitSummary = state.splitSummaries[receipt.id],
+                            onOpen = { onOpenReceipt(receipt.id) }
                         )
                     }
                 }
             }
         }
-    }
-
-    state.pendingDelete?.let { receipt ->
-        AlertDialog(
-            onDismissRequest = viewModel::onDeleteDismiss,
-            title = { Text("Delete receipt?") },
-            text = {
-                Text(
-                    "${receipt.displayName()} from ${formatDateInput(receipt.date)} " +
-                            "(${formatMoney(receipt.totalAmount, receipt.currency)}) will be deleted permanently, " +
-                            "together with its split. This can't be undone."
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = viewModel::onDeleteConfirm,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Delete") }
-            },
-            dismissButton = { TextButton(onClick = viewModel::onDeleteDismiss) { Text("Cancel") } }
-        )
     }
 }
 
@@ -221,8 +201,8 @@ private fun DateField(
 @Composable
 private fun ReceiptRow(
     receipt: Receipt,
-    onOpen: () -> Unit,
-    onDelete: () -> Unit
+    splitSummary: SplitSummary?,
+    onOpen: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -237,16 +217,19 @@ private fun ReceiptRow(
                   overflow = TextOverflow.Ellipsis
               )
               Text(formatDateInput(receipt.date), style = MaterialTheme.typography.bodyMedium)
+              splitSummary?.let { summary ->
+                  Text(
+                      summary.label(),
+                      style = MaterialTheme.typography.labelMedium,
+                      color = if (summary.isOutdated) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                  )
+              }
           }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     formatMoney(receipt.totalAmount, receipt.currency),
                     style = MaterialTheme.typography.titleMedium
                 )
-                TextButton(
-                    onClick = onDelete,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Delete") }
             }
         }
     }
@@ -272,5 +255,3 @@ private fun EmptyState(
         }
     }
 }
-
-private fun Receipt.displayName(): String = merchantName?.takeIf { it.isNotBlank() } ?: "Unknown merchant"

@@ -14,7 +14,7 @@ class PersonRepositoryImpl @Inject constructor(
     private val personDao: PersonDao
 ): PersonRepository {
 
-    //singleton repostiroy, this guards against creating two "self" rows
+    //singleton repository, this guards against creating two "self" rows
     private val selfMutex = Mutex()
 
     override fun getAllPerson(): Flow<List<Person>> =
@@ -29,6 +29,12 @@ class PersonRepositoryImpl @Inject constructor(
 
     override suspend fun addPerson(person: Person): Long =
         personDao.insert(person.toEntity())
+
+    override suspend fun renamePerson(id: Long, name: String) =
+        personDao.rename(id, name)
+
+    override suspend fun deletePerson(id: Long) =
+        personDao.deleteById(id)
 
     private fun PersonEntity.toDomain() = Person(
         id = id,

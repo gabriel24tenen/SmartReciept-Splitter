@@ -20,6 +20,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -47,6 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.smartreceiptsplitter.data.local.enums.NetMode
 import com.example.smartreceiptsplitter.data.local.enums.ShareMode
 import com.example.smartreceiptsplitter.data.local.enums.SplitPart
+import com.example.smartreceiptsplitter.domain.model.Person
 import com.example.smartreceiptsplitter.domain.model.Receipt
 import com.example.smartreceiptsplitter.domain.model.SplitCalculation
 import com.example.smartreceiptsplitter.domain.model.SplitError
@@ -109,6 +111,7 @@ fun SplitScreen(
                 actions = SplitActions(
                     onTogglePerson = viewModel::onTogglePerson,
                     onAddPerson = { showAddPerson = true },
+                    onEditPerson = viewModel::onEditPerson,
                     onNetModeChange = viewModel::onNetModeChange,
                     onTaxModeChange = viewModel::onTaxModeChange,
                     onTipModeChange = viewModel::onTipModeChange,
@@ -135,6 +138,16 @@ fun SplitScreen(
             )
         }
 
+        state.editedPerson?.let { person ->
+            EditPersonDialog(
+                person = person,
+                message = state.personMessage,
+                onRename = viewModel::onRenamePerson,
+                onRemove = viewModel::onRemovePerson,
+                onDismiss = viewModel::onEditPersonDismiss
+            )
+        }
+
         if(showAddPerson) {
             AddPersonDialog(
                 onDismiss = { showAddPerson = false },
@@ -150,6 +163,7 @@ fun SplitScreen(
 private class SplitActions(
     val onTogglePerson: (Long) -> Unit,
     val onAddPerson: () -> Unit,
+    val onEditPerson: (Person) -> Unit,
     val onNetModeChange: (NetMode) -> Unit,
     val onTaxModeChange: (ShareMode) -> Unit,
     val onTipModeChange: (ShareMode) -> Unit,
@@ -222,7 +236,8 @@ private fun SplitContent(
             ) {
                 Checkbox(checked = selected, onCheckedChange = null)
                 Spacer(Modifier.width(12.dp))
-                Text(person.name)
+                Text(person.name, modifier = Modifier.weight(1f))
+                TextButton(onClick = { actions.onEditPerson(person) }) { Text("Edit") }
             }
         }
         item(key = "add-person") { OutlinedButton(onClick = actions.onAddPerson)  { Text("Add person") } }
@@ -278,7 +293,7 @@ private fun SplitContent(
             }
         }
         when (val calculation = state.calculation) {
-            is SplitCalculation.Success -> items(calculation.splits, key = { it.personId}) { split ->
+            is SplitCalculation.Success -> items(calculation.splits, key = { it.personId } ) { split ->
                 Column {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(personById[split.personId]?.name.orEmpty())
@@ -375,6 +390,45 @@ private fun AddPersonDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
 
+    )
+}
+@Composable
+private fun EditPersonDialog(
+    person: Person,
+    message: String?,
+    onRename: (String) -> Unit,
+    onRemove: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember(person.id) { mutableStateOf(person.name) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (person.isSelf) "Edit your name" else "Edit person") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    singleLine = true
+                )
+                message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onRename(name) }, enabled = name.isNotBlank() && name.trim() != person.name ) { Text("Save") }
+        },
+        dismissButton = {
+            Row {
+                if (!person.isSelf) {
+                    TextButton(
+                        onClick = onRemove,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) { Text("Remove") }
+                }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        }
     )
 }
 private fun SplitError.message(currency: String): String = when(this) {

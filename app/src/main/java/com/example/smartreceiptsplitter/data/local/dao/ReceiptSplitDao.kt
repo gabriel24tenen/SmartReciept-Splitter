@@ -12,11 +12,15 @@ import kotlinx.coroutines.flow.Flow
 interface ReceiptSplitDao {
     @Query("SELECT * FROM receipt_splits WHERE receiptId = :receiptId")
     fun getForReceipt(receiptId: Long): Flow<List<ReceiptSplitEntity>>
+    @Query("SELECT * FROM receipt_splits")
+    fun getAll(): Flow<List<ReceiptSplitEntity>>
     @Query("SELECT * FROM receipt_splits WHERE receiptId = :receiptId")
     suspend fun getForReceiptOnce(receiptId: Long): List<ReceiptSplitEntity>
     // not used yet: debt overview per person - F17
     @Query("SELECT * FROM receipt_splits WHERE personId = :personId")
     fun getForPerson(personId: Long): Flow<List<ReceiptSplitEntity>>
+    @Query("SELECT COUNT(*) FROM receipt_splits WHERE personId = :personId")
+    suspend fun countForPerson(personId: Long): Int
     @Insert
     suspend fun insertAll(splits: List<ReceiptSplitEntity>): List<Long>
     @Update

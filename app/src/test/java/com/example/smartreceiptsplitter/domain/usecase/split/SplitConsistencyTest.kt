@@ -2,6 +2,7 @@ package com.example.smartreceiptsplitter.domain.usecase.split
 
 import com.example.smartreceiptsplitter.domain.model.Receipt
 import com.example.smartreceiptsplitter.domain.model.ReceiptSplit
+import com.example.smartreceiptsplitter.domain.model.SplitSummary
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -51,5 +52,17 @@ class SplitConsistencyTest {
         assertEquals(2000L, old.totalAmount)
         assertEquals(400L, old.taxAmount)
         assertEquals(200L, old.tipAmount)
+    }
+
+    @Test
+    fun summariesCountPeopleAndSkipReceiptsWithoutASplit() {
+        val other = receipt.copy(id = 8)
+        val summaries = splitSummaries(listOf(receipt, other), split)
+        assertEquals(mapOf(7L to SplitSummary(participants = 2, isOutdated = false)), summaries)
+    }
+
+    @Test
+    fun summariesIgnoreSplitsOfReceiptsNotInTheList() {
+        assertTrue(splitSummaries(listOf(receipt.copy(id = 8)), split).isEmpty())
     }
 }

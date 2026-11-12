@@ -7,7 +7,8 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import androidx.core.graphics.createBitmap
-import com.example.smartreceiptsplitter.domain.repository.CorrectedReceiptImage
+import com.example.smartreceiptsplitter.domain.model.DocumentCorners
+import com.example.smartreceiptsplitter.domain.repository.DetectedReceipt
 import com.example.smartreceiptsplitter.domain.repository.ReceiptImageProcessor
 import com.example.smartreceiptsplitter.domain.usecase.scan.EDGE_DETECTION_MAX_DIMENSION
 import com.example.smartreceiptsplitter.domain.usecase.scan.GrayscaleBuffer
@@ -20,24 +21,49 @@ import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import kotlin.math.max
 
+/*
+* Detect - the photo is decoded once, upright and at most PREVIEW_DIMENSION, which is the review preview
+*     -> 480 px copy of it goes to edge detection, nothing is written to disk
+* Correct - the photo is decoded again at MAX_CAPTURE_DIMENSION, warped to the given corners and encoded as JPEG
+* Both run on Dispatchers.Default and recycle every bitmap they create
+*/
+
 class BitmapReceiptImageProcessor  @Inject constructor() : ReceiptImageProcessor {
-    override suspend fun correct (jpeg: ByteArray, rotationDegrees: Int): CorrectedReceiptImage =
+    override suspend fun detect (jpeg: ByteArray, rotationDegrees: Int): DetectedReceipt =
+        withContext(Dispatchers.Default) {
+            val preview = decodeUpright(jpeg, rotationDegrees, PREVIEW_DIMENSION)
+            try {
+                val working = preview.downscale(EDGE_DETECTION_MAX_DIMENSION)
+                val corners = try {
+                    working.toGrayscale().detectDocumentCorners()
+                } finally {
+                    if (working !== preview) working.recycle()
+                }
+                DetectedReceipt(previewJpeg = preview.toJpeg(PREVIEW_JPEG_QUALITY), corners = corners)
+            } finally {
+                preview.recycle()
+            }
+        }
+
+    override suspend fun correct(
+        jpeg: ByteArray,
+        rotationDegrees: Int,
+        corners: DocumentCorners
+    ): ByteArray =
         withContext(Dispatchers.Default) {
             val photo = decodeUpright(jpeg, rotationDegrees, MAX_CAPTURE_DIMENSION)
-
-            val working = photo.downscale(EDGE_DETECTION_MAX_DIMENSION)
-            val corners = working.toGrayscale().detectDocumentCorners()
-            if (working !== photo) working.recycle()
-
-            val srcPoints = corners.toPixelPoints(photo.width, photo.height)
-            val (outputWidth, outputHeight) = computeOutputSize(srcPoints)
-            val corrected = photo.warpPerspective(srcPoints, outputWidth, outputHeight) ?: photo
-
-            val bytes = corrected.toJpeg()
-            if (corrected !== photo) corrected.recycle()
-            photo.recycle()
-            CorrectedReceiptImage(bytes, corners.isConfident)
-
+            try {
+                val srcPoints = corners.toPixelPoints(photo.width, photo.height)
+                val (outputWidth, outputHeight) = computeOutputSize(srcPoints)
+                val corrected = photo.warpPerspective(srcPoints, outputWidth, outputHeight) ?: photo
+                try {
+                    corrected.toJpeg(JPEG_QUALITY)
+                } finally {
+                    if (corrected !== photo) corrected.recycle()
+                }
+            } finally {
+                photo.recycle()
+            }
         }
 
     private fun decodeUpright(jpeg: ByteArray, rotationDegrees: Int, maxDimension: Int): Bitmap {
@@ -98,15 +124,17 @@ class BitmapReceiptImageProcessor  @Inject constructor() : ReceiptImageProcessor
         return output
     }
 
-    private fun Bitmap.toJpeg(): ByteArray =
+    private fun Bitmap.toJpeg(quality: Int): ByteArray =
         ByteArrayOutputStream().use { output ->
-            compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)
+            compress(Bitmap.CompressFormat.JPEG, quality, output)
             output.toByteArray()
         }
 
     internal companion object {
         const val MAX_CAPTURE_DIMENSION = 3000
         const val JPEG_QUALITY = 85
+        const val PREVIEW_DIMENSION = 1600
+        const val PREVIEW_JPEG_QUALITY = 90
 
         fun sampleSizeFor(width: Int, height: Int, maxDimension: Int): Int{
             val longSide = max(width, height)

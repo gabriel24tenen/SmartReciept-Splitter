@@ -11,7 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,11 +50,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +71,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.smartreceiptsplitter.data.local.enums.CameraPermissionStatus
+import com.example.smartreceiptsplitter.domain.model.DocumentCorner
+import com.example.smartreceiptsplitter.domain.model.NormalizedPoint
 import com.example.smartreceiptsplitter.domain.model.ParsedReceiptItem
 import com.example.smartreceiptsplitter.domain.model.ReceiptExtraction
 import com.example.smartreceiptsplitter.domain.model.RecognizedText
@@ -78,10 +83,10 @@ import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun ScanScreen (
+fun ScanScreen(
     modifier: Modifier = Modifier,
     viewModel: ScanViewModel = hiltViewModel(),
-    onScanCompleted: (imagePath: String, inputs: ReceiptFormInputs) -> Unit = {_, _ ->},
+    onScanCompleted: (imagePath: String, inputs: ReceiptFormInputs) -> Unit = { _, _ -> },
     onManualEntry: () -> Unit = {},
     onOpenHistory: () -> Unit = {}
 ) {
@@ -94,7 +99,9 @@ fun ScanScreen (
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val granted = ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+                val granted = ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
                 if (granted) viewModel.onAlreadyGranted()
             }
         }
@@ -102,41 +109,39 @@ fun ScanScreen (
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult( contract = ActivityResultContracts.RequestPermission() ) { isGranted ->
-        val shouldShowRationale = ActivityCompat.shouldShowRequestPermissionRationale(
-            context.findActivity(), android.Manifest.permission.CAMERA
-        )
-        viewModel.onPermissionResult(isGranted, shouldShowRationale)
-    }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { isGranted ->
+            val shouldShowRationale = ActivityCompat.shouldShowRequestPermissionRationale(
+                context.findActivity(), android.Manifest.permission.CAMERA
+            )
+            viewModel.onPermissionResult(isGranted, shouldShowRationale)
+        }
 
     LaunchedEffect(Unit) {
-        val alreadyGranted = ContextCompat.checkSelfPermission( context, android.Manifest.permission.CAMERA ) == PackageManager.PERMISSION_GRANTED
+        val alreadyGranted = ContextCompat.checkSelfPermission(
+            context, android.Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
 
         when {
             alreadyGranted -> viewModel.onAlreadyGranted()
-            //only asking the first time, after that a refusal the rationale screeen has its own button
-            // coming from Histroy or the form doesn't open the system dialog again
-            viewModel.permissionStatus.value == CameraPermissionStatus.UNKNOWN ->
-                permissionLauncher.launch(android.Manifest.permission.CAMERA)
+            //only asking the first time, after that a refusal the rationale screen has its own button
+            // coming from History or the form doesn't open the system dialog again
+            viewModel.permissionStatus.value == CameraPermissionStatus.UNKNOWN -> permissionLauncher.launch(
+                android.Manifest.permission.CAMERA
+            )
         }
     }
 
     BackHandler(enabled = permissionStatus == CameraPermissionStatus.GRANTED && captureState != CaptureState.Idle) {
         when (captureState) {
-            is CaptureState.Review,
-            is CaptureState.Recognized,
-            is CaptureState.RecognitionFailed,
-            is CaptureState.Error -> viewModel.onRetake()
+            is CaptureState.Review, is CaptureState.Recognized, is CaptureState.RecognitionFailed, is CaptureState.Error -> viewModel.onRetake()
 
-            CaptureState.Processing,
-            //CaptureState.Saving, -- removed after refactoring
-            is CaptureState.Recognizing,
-            CaptureState.Idle -> Unit
+            CaptureState.Processing, CaptureState.Correcting, is CaptureState.Recognizing, CaptureState.Idle -> Unit
         }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        when(permissionStatus) {
+        when (permissionStatus) {
             CameraPermissionStatus.GRANTED -> {
                 ScanCaptureFlow(
                     captureState = captureState,
@@ -145,18 +150,19 @@ fun ScanScreen (
                     onCaptureFailed = viewModel::onCaptureFailed,
                     onConfirm = viewModel::onConfirm,
                     onRetake = viewModel::onRetake,
+                    onCornerMoved = viewModel::onCornerMoved,
+                    onResetCorners = viewModel::onResetCorners,
                     onContinue = {
-                        viewModel.continueToForm()?.let { (imagePath, inputs) -> onScanCompleted(imagePath, inputs) }
-                    }
-                )
+                        viewModel.continueToForm()
+                            ?.let { (imagePath, inputs) -> onScanCompleted(imagePath, inputs) }
+                    })
             }
 
             CameraPermissionStatus.DENIED -> {
                 PermissionRationale(
                     message = "The camera is required to scan receipts. Grant access so you can take photos of receipts.",
                     buttonLabel = "Allow camera access",
-                    onButtonClick = { permissionLauncher.launch(android.Manifest.permission.CAMERA)}
-                )
+                    onButtonClick = { permissionLauncher.launch(android.Manifest.permission.CAMERA) })
             }
 
             CameraPermissionStatus.PERMANENTLY_DENIED -> {
@@ -169,26 +175,32 @@ fun ScanScreen (
                             Uri.fromParts("package", context.packageName, null)
                         )
                         context.startActivity(intent)
-                    }
-                )
+                    })
             }
 
             CameraPermissionStatus.UNKNOWN -> {
                 //Brief window before LaunchedEffect resolves; intentionally blank rather than flashing a rationale the user hasn't been asked for yet
             }
         }
-        if(permissionStatus != CameraPermissionStatus.GRANTED || captureState == CaptureState.Idle) {
+        if (permissionStatus != CameraPermissionStatus.GRANTED || captureState == CaptureState.Idle) {
             FilledTonalButton(
                 onClick = onOpenHistory,
-                modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp)
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(8.dp)
             ) { Text("History") }
             FilledTonalButton(
                 onClick = onManualEntry,
-                modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp)
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(8.dp)
             ) { Text("Enter manually") }
         }
     }
 }
+
 @Composable
 private fun ScanCaptureFlow(
     captureState: CaptureState,
@@ -197,6 +209,8 @@ private fun ScanCaptureFlow(
     onCaptureFailed: (String) -> Unit,
     onConfirm: () -> Unit,
     onRetake: () -> Unit,
+    onCornerMoved: (DocumentCorner, NormalizedPoint) -> Unit,
+    onResetCorners: () -> Unit,
     onContinue: () -> Unit
 ) {
     val context = LocalContext.current
@@ -204,42 +218,56 @@ private fun ScanCaptureFlow(
 
     val cameraActive = captureState == CaptureState.Idle || captureState == CaptureState.Processing
     Box(modifier = Modifier.fillMaxSize()) {
-        if(cameraActive) {
+        if (cameraActive) {
             CameraPreview(
                 modifier = Modifier.fillMaxSize(),
+                showEdgeOverlay = captureState == CaptureState.Idle,
                 onImageCaptureReady = { imageCapture = it })
         }
-        when(captureState) {
+        when (captureState) {
             CaptureState.Idle -> {
                 imageCapture?.let { controller ->
                     ShutterButton(
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(32.dp),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(32.dp),
                         onClick = {
-                            controller.takePicture(ContextCompat.getMainExecutor(context), object : ImageCapture.OnImageCapturedCallback() {
-                                override fun onCaptureSuccess(image: ImageProxy) {
-                                    val photo = try {
-                                        image.toCapturedPhoto()
-                                    } catch (t: Throwable) {
-                                        onCaptureFailed(t.message ?: "Image reading failed.")
-                                        return
-                                    } finally {
-                                        image.close()
+                            controller.takePicture(
+                                ContextCompat.getMainExecutor(context),
+                                object : ImageCapture.OnImageCapturedCallback() {
+                                    override fun onCaptureSuccess(image: ImageProxy) {
+                                        val photo = try {
+                                            image.toCapturedPhoto()
+                                        } catch (t: Throwable) {
+                                            onCaptureFailed(t.message ?: "Image reading failed.")
+                                            return
+                                        } finally {
+                                            image.close()
+                                        }
+                                        onPhotoCaptured(photo)
                                     }
-                                    onPhotoCaptured(photo)
-                                }
 
-                                override fun onError(exception: ImageCaptureException) {
-                                    onCaptureFailed( exception.message ?: "Image shooting failed.")
-                                }
-                            })
-                        }
-                    )
+                                    override fun onError(exception: ImageCaptureException) {
+                                        onCaptureFailed(
+                                            exception.message ?: "Image shooting failed."
+                                        )
+                                    }
+                                })
+                        })
                 }
             }
 
             CaptureState.Processing -> LoadingOverlay("Processing image...")
 
-            is CaptureState.Review -> ReviewOverlay( state = captureState, onConfirm = onConfirm, onRetake = onRetake )
+            is CaptureState.Review -> ReviewOverlay(
+                state = captureState,
+                onCornerMoved = onCornerMoved,
+                onResetCorners = onResetCorners,
+                onConfirm = onConfirm,
+                onRetake = onRetake
+            )
+
+            CaptureState.Correcting -> LoadingOverlay("Cropping receipt...")
 
             is CaptureState.Recognizing -> LoadingOverlay("Reading receipt text...")
 
@@ -251,20 +279,24 @@ private fun ScanCaptureFlow(
             )
 
             is CaptureState.RecognitionFailed -> RecognitionFailedOverlay(
-                message = captureState.message,
-                onEnterManually = onContinue,
-                onRetake = onRetake
+                message = captureState.message, onEnterManually = onContinue, onRetake = onRetake
             )
 
-            is CaptureState.Error -> ErrorOverlay( message = captureState.message, onRetry = onRetake)
+            is CaptureState.Error -> ErrorOverlay(
+                message = captureState.message, onRetry = onRetake
+            )
         }
     }
 }
+
 @Composable
 private fun ShutterButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        modifier = modifier.size(72.dp),
+        modifier = modifier.size(72.dp).semantics {
+            contentDescription = "Take photo"
+            role = Role.Button
+        },
         shape = CircleShape,
         color = Color.White
     ) { }
@@ -272,8 +304,16 @@ private fun ShutterButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
 
 @Composable
 private fun LoadingOverlay(label: String) {
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.6f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite}
+        ) {
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(12.dp))
             Text(label, color = Color.White)
@@ -284,31 +324,50 @@ private fun LoadingOverlay(label: String) {
 @Composable
 private fun ReviewOverlay(
     state: CaptureState.Review,
+    onCornerMoved: (DocumentCorner, NormalizedPoint) -> Unit,
+    onResetCorners: () -> Unit,
     onConfirm: () -> Unit,
     onRetake: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black).statusBarsPadding().navigationBarsPadding()) {
-        Image(
-            bitmap = state.preview.asImageBitmap(),
-            contentDescription = null,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            contentScale = ContentScale.Fit
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
+        CropEditor(
+            preview = state.preview,
+            corners = state.corners,
+            onCornerMoved = onCornerMoved,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
         )
-        if(!state.isConfident) {
-            Text(
-                text = "Receipt's edges are not safely recognized - check if picture is readable.",
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White
-            )
-        }
+        Text(
+            text = when {
+                !state.canUseCorners -> "The corners don't outline a receipt. Move them to the receipt's four corners."
+                !state.isConfident -> "Receipt's edges were not found. Drag the corners to the receipt's edges."
+                else -> "Drag the corners if the outline doesn't match the receipt."
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (state.canUseCorners) Color.White else MaterialTheme.colorScheme.error
+        )
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             OutlinedButton(onClick = onRetake) { Text("Retake") }
-            Button(onClick = onConfirm) { Text("Use photo") }
+            TextButton(
+                onClick = onResetCorners, enabled = state.corners != state.detected
+            ) { Text("Reset") }
+            Button(onClick = onConfirm, enabled = state.canUseCorners) { Text("Use photo") }
         }
     }
 }
@@ -326,7 +385,13 @@ private fun ExtractionReviewOverlay(
     var showRawText by rememberSaveable { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(16.dp)
+        ) {
             Text("Scan result", style = MaterialTheme.typography.titleLarge)
             Text(
                 text = "Fields that couldn't be read are left empty. You can correct everything on the next screen.",
@@ -336,7 +401,12 @@ private fun ExtractionReviewOverlay(
             Spacer(modifier = Modifier.height(12.dp))
 
             if (text.isEmpty) {
-                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         text = "No text was recognized on this receipt. Retake the photo or continue and enter the data by hand.",
                         textAlign = TextAlign.Center
@@ -344,15 +414,25 @@ private fun ExtractionReviewOverlay(
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
                         Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                ExtractedField("Total", extraction.totalAmount?.let { formatMoney(it, currency) })
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                ExtractedField("Merchant", extraction.merchantName)
+                                ExtractedField(
+                                    "Total",
+                                    extraction.totalAmount?.let { formatMoney(it, currency) })
                                 ExtractedField("Date", extraction.date?.format(REVIEW_DATE_FORMAT))
-                                ExtractedField("VAT / tax", extraction.taxAmount?.let { formatMoney(it, currency) })
+                                ExtractedField(
+                                    "VAT / tax",
+                                    extraction.taxAmount?.let { formatMoney(it, currency) })
                             }
                         }
                     }
@@ -364,8 +444,15 @@ private fun ExtractionReviewOverlay(
                         )
                         if (extraction.itemsMatchTotal == false) {
                             Text(
-                                text = "Items add up to ${formatMoney(extraction.itemsTotal, currency)}, but the total is " +
-                                        "${formatMoney(extraction.totalAmount ?: 0L, currency)}. Some items may be missing, misread or discounted.",
+                                text = "Items add up to ${
+                                    formatMoney(
+                                        extraction.itemsTotal, currency
+                                    )
+                                }, but the total is " + "${
+                                    formatMoney(
+                                        extraction.totalAmount ?: 0L, currency
+                                    )
+                                }. Some items may be missing, misread or discounted.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -383,14 +470,15 @@ private fun ExtractionReviewOverlay(
                         RawTextSection(
                             fullText = text.fullText,
                             expanded = showRawText,
-                            onToggle = { showRawText = !showRawText }
-                        )
+                            onToggle = { showRawText = !showRawText })
                     }
                 }
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(onClick = onRetake) { Text("Retake") }
@@ -403,13 +491,13 @@ private fun ExtractionReviewOverlay(
 
 @Composable
 private fun RecognitionFailedOverlay(
-    message: String,
-    onEnterManually: () -> Unit,
-    onRetake: () -> Unit
+    message: String, onEnterManually: () -> Unit, onRetake: () -> Unit
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -428,11 +516,12 @@ private fun RecognitionFailedOverlay(
 @Composable
 private fun ErrorOverlay(message: String, onRetry: () -> Unit) {
     Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -445,19 +534,17 @@ private fun ErrorOverlay(message: String, onRetry: () -> Unit) {
 
 @Composable
 private fun PermissionRationale(
-    message: String,
-    buttonLabel: String,
-    onButtonClick: () -> Unit
+    message: String, buttonLabel: String, onButtonClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
+            text = message, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onButtonClick) {
@@ -468,8 +555,8 @@ private fun PermissionRationale(
 
 private fun android.content.Context.findActivity(): android.app.Activity {
     var ctx = this
-    while(ctx is android.content.ContextWrapper) {
-        if(ctx is android.app.Activity) return ctx
+    while (ctx is android.content.ContextWrapper) {
+        if (ctx is android.app.Activity) return ctx
         ctx = ctx.baseContext
     }
     throw IllegalStateException("Permission request requires an Activity context")
@@ -490,9 +577,11 @@ private fun ExtractedField(label: String, value: String?) {
 }
 
 @Composable
-private fun ExtractedItemRow(item: ParsedReceiptItem, currency: String){
+private fun ExtractedItemRow(item: ParsedReceiptItem, currency: String) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -500,7 +589,11 @@ private fun ExtractedItemRow(item: ParsedReceiptItem, currency: String){
             Text(item.name, style = MaterialTheme.typography.bodyMedium)
             if (item.unitPrice != null) {
                 Text(
-                    text = "${formatQuantity(item.quantity)} × ${formatMoney(item.unitPrice, currency)}",
+                    text = "${formatQuantity(item.quantity)} × ${
+                        formatMoney(
+                            item.unitPrice, currency
+                        )
+                    }",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -516,12 +609,24 @@ private fun RawTextSection(fullText: String, expanded: Boolean, onToggle: () -> 
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    ) {
         HorizontalDivider()
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = onToggle) { Text(if (expanded) "Hide recognized text" else "Show recognized text") }
             TextButton(onClick = {
-                scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Receipt OCR", fullText))) }
+                scope.launch {
+                    clipboard.setClipEntry(
+                        ClipEntry(
+                            ClipData.newPlainText(
+                                "Receipt OCR", fullText
+                            )
+                        )
+                    )
+                }
             }) { Text("Copy text") }
         }
         if (expanded) {
@@ -534,4 +639,4 @@ private fun RawTextSection(fullText: String, expanded: Boolean, onToggle: () -> 
     }
 }
 
-private val REVIEW_DATE_FORMAT= DateTimeFormatter.ofPattern("dd.MM.yyyy")
+private val REVIEW_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy")

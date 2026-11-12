@@ -29,6 +29,7 @@ object Routes {
     const val SPLIT = "split/{$ARG_RECEIPT_ID}"
 
     const val RECEIPT_EDIT = "receipt-edit/{$ARG_RECEIPT_ID}" // for receipt editing
+    const val RECEIPT_DETAIL = "receipt/{$ARG_RECEIPT_ID}"
     // Route of the form for a receipt typed in from scratch, no camera needed
     fun receiptForm() = "receipt-form"
     fun receiptFormForScan(imagePath: String, inputs: ReceiptFormInputs = ReceiptFormInputs()): String {
@@ -47,4 +48,6 @@ object Routes {
     fun split(receiptId: Long) = "split/$receiptId"
     //Route of the form for editing one saved receipt
     fun receiptEdit(receiptId: Long) = "receipt-edit/$receiptId"
+    //Route of the detail screen of one saved receipt
+    fun receiptDetail(receiptId: Long) = "receipt/$receiptId"
 }

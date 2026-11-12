@@ -9,7 +9,8 @@ class ExtractReceiptDataUseCase @Inject constructor(
     private val parseTotal: ParseTotalAmountUseCase,
     private val parseDate : ParseReceiptDateUseCase,
     private val parseItems: ParseLineItemsUseCase,
-    private val parseTax: ParseTaxAmountUseCase
+    private val parseTax: ParseTaxAmountUseCase,
+    private val parseMerchant: ParseMerchantNameUseCase
 ) {
     operator fun invoke(text: RecognizedText, clock: Clock = Clock.systemDefaultZone()): ReceiptExtraction {
         if(text.isEmpty) return ReceiptExtraction.EMPTY
@@ -18,7 +19,8 @@ class ExtractReceiptDataUseCase @Inject constructor(
             totalAmount = total,
             date = parseDate(text, clock),
             taxAmount = parseTax(text)?.takeIf { tax -> total == null || tax < total },
-            items = parseItems(text)
+            items = parseItems(text),
+            merchantName = parseMerchant(text)
         )
     }
 }

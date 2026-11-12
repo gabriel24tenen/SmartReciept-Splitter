@@ -1,5 +1,6 @@
 package com.example.smartreceiptsplitter.ui.presentation.receiptsForm
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +14,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,6 +55,11 @@ fun ReceiptFormScreen(
         state.savedReceiptId?.let{onSaved(it, state.splitNeedsReview) }
     }
 
+    BackHandler(onBack = viewModel::onBackRequest)
+    LaunchedEffect(state.hasLeft) {
+        if (state.hasLeft) onBack()
+    }
+
     Scaffold(
         modifier = modifier,
         bottomBar = {
@@ -58,8 +67,8 @@ fun ReceiptFormScreen(
                 modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
-                Button(onClick = viewModel::onSave, enabled = !state.isSaving && !state.isLoading && !state.notFound, modifier = Modifier.weight(1f)) { Text("Save") }
+                OutlinedButton(onClick = viewModel::onBackRequest, enabled = !state.isLeaving, modifier = Modifier.weight(1f)) { Text("Back") }
+                Button(onClick = viewModel::onSave, enabled = !state.isSaving && !state.isLoading && !state.notFound && !state.isLeaving, modifier = Modifier.weight(1f)) { Text("Save") }
             }
         }
     ) { padding ->
@@ -148,6 +157,29 @@ fun ReceiptFormScreen(
                     )
                     state.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
+    }
+
+    if(state.showDiscardConfirmation) {
+        AlertDialog(
+            onDismissRequest = viewModel::onDiscardDismiss,
+            title = { Text(if (state.isEditing) "Discard changes?" else "Discard this receipt?") },
+            text = {
+                Text(
+                    when {
+                        state.isEditing -> "Your changes to this receipt won't be saved."
+                        !state.isManualEntry -> "The values you entered and the scanned photo will be discarded."
+                        else -> "The values you entered will be discarded."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::onDiscardConfirm,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Discard") }
+            },
+            dismissButton = { TextButton(onClick = viewModel::onDiscardDismiss) { Text("Keep editing") }}
+        )
     }
 }
 

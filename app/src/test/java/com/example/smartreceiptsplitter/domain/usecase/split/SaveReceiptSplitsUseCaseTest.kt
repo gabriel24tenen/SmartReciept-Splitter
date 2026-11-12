@@ -15,6 +15,8 @@ class SaveReceiptSplitsUseCaseTest {
         var savedSplits: List<ReceiptSplit>? = null
         var savedTip: Long? = -1
         override fun observeSplits(receiptId: Long): Flow<List<ReceiptSplit>> = flowOf(emptyList())
+        override fun observeAllSplits(): Flow<List<ReceiptSplit>> = flowOf(emptyList())
+        override suspend fun countSplitsOf(personId: Long): Int = 0
         override suspend fun saveSplits(receiptId: Long, splits: List<ReceiptSplit>, receiptTipAmount: Long?) {
             savedSplits = splits
             savedTip = receiptTipAmount

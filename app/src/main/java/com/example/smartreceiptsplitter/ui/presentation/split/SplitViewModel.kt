@@ -12,6 +12,9 @@ import com.example.smartreceiptsplitter.domain.model.SplitCalculation
 import com.example.smartreceiptsplitter.domain.usecase.person.AddPersonUseCase
 import com.example.smartreceiptsplitter.domain.usecase.person.GetOrCreateSelfPersonUseCase
 import com.example.smartreceiptsplitter.domain.usecase.person.GetPersonsUseCase
+import com.example.smartreceiptsplitter.domain.usecase.person.RemovePersonResult
+import com.example.smartreceiptsplitter.domain.usecase.person.RemovePersonUseCase
+import com.example.smartreceiptsplitter.domain.usecase.person.RenamePersonUseCase
 import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptByIdUseCase
 import com.example.smartreceiptsplitter.domain.usecase.split.CalculateSplitUseCase
 import com.example.smartreceiptsplitter.domain.usecase.split.GetReceiptSplitsUseCase
@@ -40,7 +43,9 @@ data class SplitUiState(
     val isSaving: Boolean = false,
     val isSaved: Boolean = false,
     val errorMessage: String? = null,
-    val isSplitOutdated: Boolean = false //the saved split was made for the other amounts (the receipt was updated after split)
+    val isSplitOutdated: Boolean = false, //the saved split was made for the other amounts (the receipt was updated after split)
+    val editedPerson: Person? = null,
+    val personMessage: String? = null
 )
 
 @HiltViewModel
@@ -51,6 +56,8 @@ class SplitViewModel @Inject constructor(
     private val getPersons: GetPersonsUseCase,
     private val getOrCreateSelf: GetOrCreateSelfPersonUseCase,
     private val addPerson: AddPersonUseCase,
+    private val renamePerson: RenamePersonUseCase,
+    private val removePerson: RemovePersonUseCase,
     private val calculateSplit: CalculateSplitUseCase,
     private val saveSplits: SaveReceiptSplitsUseCase
 ): ViewModel() {
@@ -86,7 +93,7 @@ class SplitViewModel @Inject constructor(
                         val savedIds = saved.map { it.personId }.toSet()
                         val ordered = persons.map { it.id }.filter { it in savedIds }
                         if(saved.isOutdatedFor(receipt)) {
-                            // modes - recognizing on the amounts the split was made for, then applied to the new ones - even/proportional split is recalculated rght away, custom amounts have to be corrected
+                            // modes - recognizing on the amounts the split was made for, then applied to the new ones - even/proportional split is recalculated right away, custom amounts have to be corrected
                             val modes = inferInputs(receipt.withAmountsOf(saved), saved, ordered) { calculateSplit(it)}
                             val tip = receipt.tipAmount?.takeIf { it > 0 }?.let(::formatMoneyInput).orEmpty()
                             Loaded(receipt,  persons,savedIds, modes.copy(tip = tip), isOutdated = true)
@@ -116,6 +123,49 @@ class SplitViewModel @Inject constructor(
     fun onAddPerson(name: String) {
         viewModelScope.launch {
             addPerson(name)?.let { id -> update { copy(selectedIds = selectedIds + id) } }
+        }
+    }
+
+    fun onEditPerson(person: Person) = update { copy(editedPerson = person, personMessage = null) }
+    fun onEditPersonDismiss() = update { copy(editedPerson = null, personMessage = null) }
+    fun onRenamePerson(name: String) {
+        val person = _state.value.editedPerson ?: return
+        viewModelScope.launch {
+            runCatching { renamePerson(person, name) }.fold(
+                onSuccess = { renamed ->
+                    update { if (renamed) copy(editedPerson = null, personMessage = null) else copy(personMessage = "Enter a name.") }
+                },
+                onFailure = { error -> update { copy(personMessage = error.message ?: "Could not rename the person.") } }
+            )
+        }
+    }
+    fun onRemovePerson() {
+        val person = _state.value.editedPerson ?: return
+        viewModelScope.launch {
+            runCatching { removePerson(person) }.fold(
+                onSuccess = { result ->
+                    update {
+                        when(result) {
+                            RemovePersonResult.Removed -> copy(
+                                editedPerson = null,
+                                personMessage = null,
+                                selectedIds = selectedIds - person.id,
+                                inputs = inputs.copy(
+                                    netAmounts = inputs.netAmounts - person.id,
+                                    taxAmounts = inputs.taxAmounts - person.id,
+                                    tipAmounts = inputs.tipAmounts - person.id
+                                )
+                            )
+                            is RemovePersonResult.UsedInReceipts -> copy(
+                                personMessage = "${person.name} is part of the split on ${result.count} " +
+                                        (if (result.count == 1) "receipt" else "receipts") + " and can't be removed."
+                            )
+                            RemovePersonResult.IsSelf -> copy(personMessage = "Your own entry can't be removed.")
+                        }
+                    }
+                },
+                onFailure = { error -> update { copy(personMessage = error.message ?: "Could not remove the person.") } }
+            )
         }
     }
 

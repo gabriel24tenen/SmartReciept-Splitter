@@ -21,6 +21,7 @@ class GetReceiptsUseCaseTest {
         }
         override fun getCurrencies(): Flow<List<String>> = flowOf(stored.map { it.currency }.distinct().sorted())
         override suspend fun getReceiptById(id: Long): Receipt? = stored.firstOrNull { it.id == id }
+        override fun observeReceipt(id: Long): Flow<Receipt?> = flowOf(stored.firstOrNull { it.id == id })
         override suspend fun addReceipt(receipt: Receipt): Long = 0
         override suspend fun updateReceipt(receipt: Receipt) = Unit
         override suspend fun deleteReceipt(receipt: Receipt) = Unit

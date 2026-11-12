@@ -8,6 +8,9 @@ import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUs
 import com.example.smartreceiptsplitter.domain.model.ReceiptDraft
 import org.junit.Assert.assertEquals
 import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.util.Locale
@@ -185,5 +188,52 @@ class ReceiptFormInputsTest {
         assertEquals(ReceiptFieldError.TAX_EXCEEDS_TOTAL, errors(text)[ReceiptField.TAX])
         val corrected = text.copy(total = "60")
         assertEquals(6000L, (validate(corrected) as ReceiptValidation.Valid).receipt.totalAmount)
+    }
+
+    @Test
+    fun typedValueIsAChange() {
+        val scanned = ReceiptFormInputs("Konzum", "19.10.2026", "12.50", "", "", "EUR")
+        assertFalse(scanned.hasChangesFrom(scanned))
+        assertTrue(scanned.copy(total = "12.60").hasChangesFrom(scanned))
+        assertTrue(scanned.copy(merchantName = "").hasChangesFrom(scanned))
+        assertTrue(scanned.copy(tip = "1").hasChangesFrom(scanned))
+    }
+
+    @Test
+    fun spacesAroundAValueAreNotAChange() {
+        val manual = ReceiptFormInputs(date = "19.10.2026")
+        assertFalse(manual.copy(merchantName = "  ", date = " 19.10.2026 ").hasChangesFrom(manual))
+    }
+
+    @Test
+    fun valueTypedAndDeletedAgainIsNotAChange() {
+        val manual = ReceiptFormInputs(date = "19.10.2026")
+        val typed = manual.copy(total = "5")
+        assertTrue(typed.hasChangesFrom(manual))
+        assertFalse(typed.copy(total = "").hasChangesFrom(manual))
+    }
+
+    @Test
+    fun savedInputsComeBackUnchanged() {
+        val typed = ReceiptFormInputs("Konzum d.o.o.", "19.10.2026", "12,50", "", "1.00", "USD")
+        val handle = typed.toSavedState()
+        assertEquals(typed, receiptFormInputsFromSavedState { handle[it] })
+    }
+
+    @Test
+    fun formOpenedForTheFirstTimeHasNothingToRestore() {
+        assertNull(receiptFormInputsFromSavedState { null })
+        // a half written state (one key missing) isn't restored either
+        val partial = ReceiptFormInputs(total = "5").toSavedState().entries.drop(1).associate { it.key to it.value }
+        assertNull(receiptFormInputsFromSavedState { partial[it] })
+    }
+
+    @Test
+    fun savedKeysDontCollideWithTheRouteArguments() {
+        // the route arguments of the receipt form live in the same SavedStateHandle
+        val routeArguments = setOf("imagePath", "merchant", "date", "total", "tax", "tip", "currency", "receiptId")
+        val keys = ReceiptFormInputs().toSavedState().keys
+        assertEquals(6, keys.size)
+        assertTrue(keys.none { it in routeArguments })
     }
 }

@@ -18,8 +18,12 @@ interface PersonDao {
     suspend fun getById(id: Long): PersonEntity?
     @Insert
     suspend fun insert(person: PersonEntity): Long
+    @Query("UPDATE persons SET name = :name WHERE id = :id")
+    suspend fun rename(id: Long, name: String)
     @Update
     suspend fun update(person: PersonEntity)
+    @Query("DELETE FROM persons WHERE id = :id")
+    suspend fun deleteById(id: Long)
     @Delete
     suspend fun delete(person: PersonEntity)
 }

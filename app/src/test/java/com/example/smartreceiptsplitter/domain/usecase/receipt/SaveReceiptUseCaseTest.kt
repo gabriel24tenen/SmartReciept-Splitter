@@ -18,6 +18,7 @@ class SaveReceiptUseCaseTest {
         val added = mutableListOf<Receipt>()
         // override fun getAllReceipts(): Flow<List<Receipt>> = flowOf(added.toList())
         override suspend fun getReceiptById(id: Long): Receipt? = null
+        override fun observeReceipt(id: Long): Flow<Receipt?> = flowOf(null)
         override suspend fun addReceipt(receipt: Receipt): Long {
             added += receipt
             return newId

@@ -2,6 +2,7 @@ package com.example.smartreceiptsplitter.ui.presentation.receipts
 
 import com.example.smartreceiptsplitter.domain.model.Receipt
 import com.example.smartreceiptsplitter.domain.model.ReceiptFilter
+import com.example.smartreceiptsplitter.domain.model.SplitSummary
 import com.example.smartreceiptsplitter.ui.util.parseDate
 import java.time.Instant
 import java.time.ZoneId
@@ -18,7 +19,7 @@ data class ReceiptListUiState(
     val dateFromInvalid: Boolean = false,
     val dateToInvalid: Boolean = false,
     val dateRangeReversed: Boolean = false,
-    val pendingDelete: Receipt? = null,
+    val splitSummaries: Map<Long, SplitSummary> = emptyMap(),
     val errorMessage: String? = null
     ) {
     val activeFilterCount: Int

@@ -11,6 +11,7 @@ import com.example.smartreceiptsplitter.domain.usecase.receipt.GetReceiptByIdUse
 import com.example.smartreceiptsplitter.domain.usecase.receipt.SaveReceiptUseCase
 import com.example.smartreceiptsplitter.domain.usecase.receipt.UpdateReceiptUseCase
 import com.example.smartreceiptsplitter.domain.usecase.receipt.ValidateReceiptUseCase
+import com.example.smartreceiptsplitter.domain.usecase.scan.DeleteReceiptImageUseCase
 import com.example.smartreceiptsplitter.ui.navigation.Routes
 import com.example.smartreceiptsplitter.ui.util.formatDateInput
 import com.example.smartreceiptsplitter.ui.util.formatMoneyInput
@@ -34,28 +35,43 @@ data class ReceiptFormUiState(
     val isEditing: Boolean = false,
     val isLoading: Boolean = false, // receipt is being read
     val notFound: Boolean = false, // the receipt to edit doesn't exist
-    val splitNeedsReview: Boolean = false // after an edit its saved split no longer matches the amounts
+    val splitNeedsReview: Boolean = false, // after an edit its saved split no longer matches the amounts
+    val showDiscardConfirmation: Boolean = false, // receipt is being read
+    val isLeaving: Boolean = false, // the scanned image of an unsaved receipt is being deleted
+    val hasLeft: Boolean = false // the screen can be closed
 )
 
 @HiltViewModel
 class ReceiptFormViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val validateReceipt: ValidateReceiptUseCase,
     private val saveReceipt: SaveReceiptUseCase,
     private val getReceiptById: GetReceiptByIdUseCase,
-    private val updateReceipt: UpdateReceiptUseCase
-): ViewModel() {
+    private val updateReceipt: UpdateReceiptUseCase,
+    private val deleteReceiptImage: DeleteReceiptImageUseCase
+) : ViewModel() {
     private val editingId: Long? = savedStateHandle.get<Long>(Routes.ARG_RECEIPT_ID)
     private var editedReceipt: Receipt? = null //stored receipt is loaded in init
+
     // Only a manual entry is stored with true value for manual entry, not ones that comes with its photo scanned
     private val imagePath: String? = savedStateHandle.get<String>(Routes.ARG_IMAGE_PATH)
     private val isManualEntry = imagePath == null
     private val clock = Clock.systemDefaultZone()
+    private val restoredInputs: ReceiptFormInputs? =
+        receiptFormInputsFromSavedState { key -> savedStateHandle.get<String>(key) }
+    private val startInputs = initialInputs(savedStateHandle)
     private val _state = MutableStateFlow(
-        ReceiptFormUiState(inputs = initialInputs(savedStateHandle), isManualEntry = isManualEntry, isEditing = editingId != null, isLoading =  editingId != null))
+        ReceiptFormUiState(
+            inputs = restoredInputs ?: startInputs,
+            isManualEntry = isManualEntry,
+            isEditing = editingId != null,
+            isLoading = editingId != null
+        )
+    )
     val state: StateFlow<ReceiptFormUiState> = _state.asStateFlow()
 
     private var submitted = false //after first Save, errors are just refreshed
+    private var originalInputs: ReceiptFormInputs? = if (editingId == null) startInputs else null
 
     init {
         if (editingId != null) loadReceiptToEdit(editingId)
@@ -66,14 +82,15 @@ class ReceiptFormViewModel @Inject constructor(
     fun onTotalChange(text: String) = change { copy(total = text) }
     fun onTaxChange(text: String) = change { copy(tax = text) }
     fun onTipChange(text: String) = change { copy(tip = text) }
-    fun onCurrencyChange(text: String) = change { copy(currency = text.filter { it.isLetter() }.take(3).uppercase()) }
+    fun onCurrencyChange(text: String) =
+        change { copy(currency = text.filter { it.isLetter() }.take(3).uppercase()) }
 
 
     fun onSave() {
         if (_state.value.isSaving || _state.value.savedReceiptId != null) return
         if (editingId != null && editedReceipt == null) return
         submitted = true
-        when(val result = _state.value.inputs.validate(validateReceipt, clock)) {
+        when (val result = _state.value.inputs.validate(validateReceipt, clock)) {
             is ReceiptValidation.Invalid -> _state.update { it.copy(errors = result.errors) }
             is ReceiptValidation.Valid -> {
                 _state.update { it.copy(errors = emptyMap(), isSaving = true, errorMessage = null) }
@@ -87,12 +104,56 @@ class ReceiptFormViewModel @Inject constructor(
                             saveReceipt(result.receipt, isManualEntry, imagePath) to false
                         }
                     }.fold(
-                        onSuccess = { (id, review) -> _state.update { it.copy(isSaving = false, savedReceiptId = id, splitNeedsReview = review) } },
+                        onSuccess = { (id, review) ->
+                            _state.update {
+                                it.copy(
+                                    isSaving = false,
+                                    savedReceiptId = id,
+                                    splitNeedsReview = review
+                                )
+                            }
+                        },
                         onFailure = { error ->
-                            _state.update { it.copy(isSaving = false, errorMessage = error.message ?: "Could not save the receipt.") }
+                            _state.update {
+                                it.copy(
+                                    isSaving = false,
+                                    errorMessage = error.message ?: "Could not save the receipt."
+                                )
+                            }
                         })
                 }
             }
+        }
+    }
+
+    fun onBackRequest() {
+        val state = _state.value
+        if (state.isSaving || state.isLeaving || state.hasLeft || state.savedReceiptId != null) return
+        val original = originalInputs
+        if (original != null && state.inputs.hasChangesFrom(original)) {
+            _state.update { it.copy(showDiscardConfirmation = true) }
+        } else {
+            leave()
+        }
+    }
+
+    fun onDiscardConfirm() {
+        _state.update { it.copy(showDiscardConfirmation = false) }
+        leave()
+    }
+
+    fun onDiscardDismiss() = _state.update { it.copy(showDiscardConfirmation = false) }
+
+    private fun leave() {
+        val unsavedImage = imagePath
+        if (unsavedImage == null) {
+            _state.update { it.copy(hasLeft = true) }
+            return
+        }
+        _state.update { it.copy(isLeaving = true) }
+        viewModelScope.launch {
+            runCatching { deleteReceiptImage(unsavedImage) }
+            _state.update { it.copy(isLeaving = false, hasLeft = true) }
         }
     }
 
@@ -101,6 +162,11 @@ class ReceiptFormViewModel @Inject constructor(
             val inputs = state.inputs.transform()
             state.copy(inputs = inputs, errors = if (submitted) errorsOf(inputs) else state.errors)
         }
+        saveInputs(_state.value.inputs)
+    }
+
+    private fun saveInputs(inputs: ReceiptFormInputs) {
+        inputs.toSavedState().forEach { (key, value) -> savedStateHandle[key] = value }
     }
 
     private fun errorsOf(inputs: ReceiptFormInputs): Map<ReceiptField, ReceiptFieldError> =
@@ -111,13 +177,25 @@ class ReceiptFormViewModel @Inject constructor(
             runCatching { getReceiptById(id) }.fold(
                 onSuccess = { receipt ->
                     editedReceipt = receipt
+                    val inputs = receipt?.toEditInputs(clock)
+                    originalInputs = inputs
                     _state.update {
-                        if(receipt == null) it.copy(isLoading = false, notFound = true)
-                        else it.copy(isLoading = false, inputs = receipt.toEditInputs(clock), isManualEntry = receipt.isManualEntry)
+                        if (receipt == null || inputs == null) it.copy(isLoading = false, notFound = true)
+                        else it.copy(
+                            isLoading = false,
+                            inputs = restoredInputs ?: inputs,
+                            isManualEntry = receipt.isManualEntry
+                        )
                     }
                 },
                 onFailure = { error ->
-                    _state.update { it.copy(isLoading = false, notFound = true, errorMessage = error.message ?: "Could not load the receipt.") }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            notFound = true,
+                            errorMessage = error.message ?: "Could not load the receipt."
+                        )
+                    }
                 }
             )
         }
@@ -131,10 +209,16 @@ class ReceiptFormViewModel @Inject constructor(
         tip = tipAmount?.let(::formatMoneyInput).orEmpty(),
         currency = currency
     )
+
     // a new receipt starts with today's date, a scanned one starts with OCR read, if date was not found it will stay blank -> wrong default will not be saved
     private fun initialInputs(handle: SavedStateHandle): ReceiptFormInputs {
         if (editingId != null) return ReceiptFormInputs()
-        if (isManualEntry) return ReceiptFormInputs(date = formatDateInput(clock.millis(), clock.zone))
+        if (isManualEntry) return ReceiptFormInputs(
+            date = formatDateInput(
+                clock.millis(),
+                clock.zone
+            )
+        )
         fun arg(name: String) = handle.get<String>(name).orEmpty()
         return ReceiptFormInputs(
             merchantName = arg(Routes.ARG_MERCHANT),
